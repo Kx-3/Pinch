@@ -1,0 +1,479 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design system — "Technical Precision" for Pinch.
+ * Data-dense fintech UI: tonal layers, ghost borders, 4px rhythm.
+ */
+
+@theme inline {
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
+
+  --shadow-technical: 0 1px 2px 0 rgba(20, 27, 43, 0.05);
+  --shadow-modal: 0 4px 12px 0 rgba(20, 27, 43, 0.08);
+  --shadow-floating-dock: 0 8px 24px -4px rgba(20, 27, 43, 0.12);
+
+  --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--on-primary);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--on-secondary);
+  --color-muted: var(--surface-container);
+  --color-muted-foreground: var(--on-surface-variant);
+  --color-accent: var(--surface-container-high);
+  --color-accent-foreground: var(--on-surface);
+  --color-destructive: var(--error);
+  --color-destructive-foreground: var(--on-error);
+  --color-border: var(--outline-variant);
+  --color-input: var(--outline-variant);
+  --color-ring: var(--primary);
+
+  /* Material-ish semantic surface roles */
+  --color-surface: var(--surface);
+  --color-surface-dim: var(--surface-dim);
+  --color-surface-bright: var(--surface-bright);
+  --color-surface-container-lowest: var(--surface-container-lowest);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-surface-container-highest: var(--surface-container-highest);
+  --color-surface-variant: var(--surface-variant);
+  --color-surface-tint: var(--surface-tint);
+  --color-on-surface: var(--on-surface);
+  --color-on-surface-variant: var(--on-surface-variant);
+  --color-inverse-surface: var(--inverse-surface);
+  --color-inverse-on-surface: var(--inverse-on-surface);
+  --color-outline: var(--outline);
+  --color-outline-variant: var(--outline-variant);
+
+  /* Sidebar roles mapped onto the Pinch surface tokens */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--on-surface);
+  --color-sidebar-primary: var(--primary);
+  --color-sidebar-primary-foreground: var(--on-primary);
+  --color-sidebar-accent: var(--surface-container-low);
+  --color-sidebar-accent-foreground: var(--on-surface);
+  --color-sidebar-border: var(--outline-variant);
+  --color-sidebar-ring: var(--primary);
+
+
+  --color-on-primary: var(--on-primary);
+  --color-primary-container: var(--primary-container);
+  --color-on-primary-container: var(--on-primary-container);
+  --color-inverse-primary: var(--inverse-primary);
+  --color-primary-fixed: var(--primary-fixed);
+  --color-primary-fixed-dim: var(--primary-fixed-dim);
+  --color-on-primary-fixed: var(--on-primary-fixed);
+  --color-on-primary-fixed-variant: var(--on-primary-fixed-variant);
+
+  --color-on-secondary: var(--on-secondary);
+  --color-secondary-container: var(--secondary-container);
+  --color-on-secondary-container: var(--on-secondary-container);
+  --color-secondary-fixed: var(--secondary-fixed);
+  --color-secondary-fixed-dim: var(--secondary-fixed-dim);
+  --color-on-secondary-fixed: var(--on-secondary-fixed);
+  --color-on-secondary-fixed-variant: var(--on-secondary-fixed-variant);
+
+  --color-tertiary: var(--tertiary);
+  --color-on-tertiary: var(--on-tertiary);
+  --color-tertiary-container: var(--tertiary-container);
+  --color-on-tertiary-container: var(--on-tertiary-container);
+  --color-tertiary-fixed: var(--tertiary-fixed);
+  --color-tertiary-fixed-dim: var(--tertiary-fixed-dim);
+  --color-on-tertiary-fixed: var(--on-tertiary-fixed);
+  --color-on-tertiary-fixed-variant: var(--on-tertiary-fixed-variant);
+
+  --color-error: var(--error);
+  --color-on-error: var(--on-error);
+  --color-error-container: var(--error-container);
+  --color-on-error-container: var(--on-error-container);
+
+  /* Financial semantics */
+  --color-financial-income: var(--financial-income);
+  --color-financial-income-bg: var(--financial-income-bg);
+  --color-financial-expense: var(--financial-expense);
+  --color-financial-expense-bg: var(--financial-expense-bg);
+  --color-financial-warning: var(--financial-warning);
+  --color-financial-warning-bg: var(--financial-warning-bg);
+
+  /* Category / chart palette */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+
+
+
+  /* Strict 4px spacing rhythm */
+  --spacing-xs: 0.25rem;
+  --spacing-base: 0.5rem;
+  --spacing-sm: 0.75rem;
+  --spacing-md: 1rem;
+  --spacing-gutter: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+
+  /* NOTE: the custom --spacing-* keys above shadow max-w-sm/md/lg/xl, so
+     component max-widths use explicit rem values (e.g. max-w-[28rem]). */
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+:root {
+  --radius: 1rem;
+  --ghost-border: rgba(0, 0, 0, 0.05);
+
+  --background: #f9f9ff;
+  --foreground: #141b2b;
+
+  --surface: #f9f9ff;
+  --surface-dim: #d3daef;
+  --surface-bright: #f9f9ff;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f1f3ff;
+  --surface-container: #e9edff;
+  --surface-container-high: #e1e8fd;
+  --surface-container-highest: #dce2f7;
+  --surface-variant: #dce2f7;
+  --surface-tint: #005ac2;
+  --on-surface: #141b2b;
+  --on-surface-variant: #424754;
+  --inverse-surface: #293040;
+  --inverse-on-surface: #edf0ff;
+  --outline: #727785;
+  --outline-variant: #c2c6d6;
+
+  --card: #ffffff;
+  --card-foreground: #141b2b;
+  --popover: #ffffff;
+  --popover-foreground: #141b2b;
+
+  --primary: #0058be;
+  --on-primary: #ffffff;
+  --primary-container: #2170e4;
+  --on-primary-container: #fefcff;
+  --inverse-primary: #adc6ff;
+  --primary-fixed: #d8e2ff;
+  --primary-fixed-dim: #adc6ff;
+  --on-primary-fixed: #001a42;
+  --on-primary-fixed-variant: #004395;
+
+  --secondary: #006c49;
+  --on-secondary: #ffffff;
+  --secondary-container: #6cf8bb;
+  --on-secondary-container: #00714d;
+  --secondary-fixed: #6ffbbe;
+  --secondary-fixed-dim: #4edea3;
+  --on-secondary-fixed: #002113;
+  --on-secondary-fixed-variant: #005236;
+
+  --tertiary: #924700;
+  --on-tertiary: #ffffff;
+  --tertiary-container: #b75b00;
+  --on-tertiary-container: #fffbff;
+  --tertiary-fixed: #ffdcc6;
+  --tertiary-fixed-dim: #ffb786;
+  --on-tertiary-fixed: #311400;
+  --on-tertiary-fixed-variant: #723600;
+
+  --error: #ba1a1a;
+  --on-error: #ffffff;
+  --error-container: #ffdad6;
+  --on-error-container: #93000a;
+
+  --sidebar: #ffffff;
+
+  --financial-income: #006c49;
+  --financial-income-bg: #6cf8bb;
+  --financial-expense: #ba1a1a;
+  --financial-expense-bg: #ffdad6;
+  --financial-warning: #924700;
+  --financial-warning-bg: #ffdcc6;
+
+  --chart-1: #f59e0b;
+  --chart-2: #10b981;
+  --chart-3: #8b5cf6;
+  --chart-4: #ec4899;
+  --chart-5: #3b82f6;
+  --chart-6: #64748b;
+
+}
+
+.dark {
+  --ghost-border: rgba(255, 255, 255, 0.12);
+
+  --background: #11151f;
+  --foreground: #e3e8f7;
+
+  --surface: #11151f;
+  --surface-dim: #11151f;
+  --surface-bright: #363a45;
+  --surface-container-lowest: #0c1019;
+  --surface-container-low: #191d28;
+  --surface-container: #1d212c;
+  --surface-container-high: #272b36;
+  --surface-container-highest: #323641;
+  --surface-variant: #434750;
+  --surface-tint: #adc6ff;
+  --on-surface: #e3e8f7;
+  --on-surface-variant: #c2c6d6;
+  --inverse-surface: #e3e8f7;
+  --inverse-on-surface: #293040;
+  --outline: #8c9199;
+  --outline-variant: #434750;
+
+  --card: #191d28;
+  --card-foreground: #e3e8f7;
+  --popover: #191d28;
+  --popover-foreground: #e3e8f7;
+
+  --primary: #adc6ff;
+  --on-primary: #002e69;
+  --primary-container: #004395;
+  --on-primary-container: #d8e2ff;
+  --inverse-primary: #0058be;
+  --primary-fixed: #d8e2ff;
+  --primary-fixed-dim: #adc6ff;
+  --on-primary-fixed: #001a42;
+  --on-primary-fixed-variant: #004395;
+
+  --secondary: #4edea3;
+  --on-secondary: #003824;
+  --secondary-container: #005236;
+  --on-secondary-container: #6ffbbe;
+  --secondary-fixed: #6ffbbe;
+  --secondary-fixed-dim: #4edea3;
+  --on-secondary-fixed: #002113;
+  --on-secondary-fixed-variant: #005236;
+
+  --tertiary: #ffb786;
+  --on-tertiary: #512400;
+  --tertiary-container: #723600;
+  --on-tertiary-container: #ffdcc6;
+  --tertiary-fixed: #ffdcc6;
+  --tertiary-fixed-dim: #ffb786;
+  --on-tertiary-fixed: #311400;
+  --on-tertiary-fixed-variant: #723600;
+
+  --error: #ffb4ab;
+  --on-error: #690005;
+  --error-container: #93000a;
+  --on-error-container: #ffdad6;
+
+  --sidebar: #191d28;
+
+  --financial-income: #4edea3;
+  --financial-income-bg: #005236;
+  --financial-expense: #ffb4ab;
+  --financial-expense-bg: #93000a;
+  --financial-warning: #ffb786;
+  --financial-warning-bg: #723600;
+
+  --chart-1: #fbbf24;
+  --chart-2: #34d399;
+  --chart-3: #a78bfa;
+  --chart-4: #f472b6;
+  --chart-5: #60a5fa;
+  --chart-6: #94a3b8;
+
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@utility font-mono-numbers {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum";
+  letter-spacing: -0.01em;
+}
+
+@utility text-numeric-data {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum";
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.25rem;
+}
+
+@utility text-numeric-lg {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.75rem;
+  font-weight: 500;
+  line-height: 2.25rem;
+  letter-spacing: -0.01em;
+}
+
+@utility text-numeric-md {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.5rem;
+}
+
+@utility text-numeric-sm {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.25rem;
+}
+
+
+
+@utility text-display-lg {
+  font-size: 2.5rem;
+  line-height: 1.1;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+@utility text-headline-lg {
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+
+  @media (min-width: 768px) {
+    font-size: 2rem;
+    line-height: 2.5rem;
+    letter-spacing: -0.02em;
+  }
+}
+
+@utility text-headline-md {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-weight: 500;
+}
+
+@utility text-body-md {
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 400;
+}
+
+@utility text-label-bold {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.15rem;
+}
+
+@utility font-label-bold {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+@utility text-label-sm {
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1rem;
+  letter-spacing: 0.05em;
+}
+
+/* Level 1/2 surfaces: tonal shift + 1px ghost border, no shadow */
+@utility ghost-border {
+  border: 1px solid var(--ghost-border);
+}
+
+@utility pressable {
+  transition:
+    transform 160ms var(--ease-out),
+    background-color 160ms var(--ease-out),
+    color 160ms var(--ease-out);
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+/* Entrance: fade + slight rise, staggered by index via --enter-delay */
+@keyframes pinch-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility enter-rise {
+  animation: pinch-enter 420ms var(--ease-out) both;
+  animation-delay: var(--enter-delay, 0ms);
+}
+
+/* Frosted dock: translucent tonal surface + hairline edge, tuned per mode.
+   Standard backdrop-filter only — Lightning CSS adds prefixes. */
+@utility dock-glass {
+  background: color-mix(in oklab, var(--surface-container-lowest) 72%, transparent);
+  backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid var(--ghost-border);
+  box-shadow:
+    0 1px 2px rgba(8, 12, 24, 0.06),
+    0 12px 32px -12px rgba(8, 12, 24, 0.28);
+}
+
+.dark .dock-glass {
+  background: color-mix(in oklab, var(--surface-container-high) 62%, transparent);
+  border: 1px solid var(--outline-variant);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 16px 40px -14px rgba(0, 0, 0, 0.7);
+}
+
+@utility hover-lift {
+  transition:
+    transform 200ms var(--ease-out),
+    background-color 200ms var(--ease-out);
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      transform: translateY(-2px);
+    }
+  }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-property: opacity, background-color, color, border-color !important;
+    transition-duration: 150ms !important;
+  }
+}
