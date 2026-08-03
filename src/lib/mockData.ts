@@ -78,6 +78,7 @@ export interface Transaction {
   /** PaymentMethod id */
   paidFrom: string;
   tags: string[];
+  type: "expense" | "income";
 }
 
 export interface ScheduledOutflow {
@@ -178,17 +179,17 @@ export const enrichLine = (l: BudgetLine): Envelope => {
   };
 };
 
-export const TRANSACTIONS: Transaction[] = [
-  { id: "tx-1", date: "2025-10-18", payee: "Whole Foods", categoryId: "food-groceries", amount: -128.4, paidFrom: "pm-checking", tags: ["weekly-shop"] },
-  { id: "tx-2", date: "2025-10-17", payee: "Uber", categoryId: "ridesharing", amount: -48.1, paidFrom: "pm-card", tags: ["work-travel", "reimbursable"] },
-  { id: "tx-3", date: "2025-10-16", payee: "DoorDash", categoryId: "food-delivery", amount: -19.99, paidFrom: "pm-card", tags: ["late-night"] },
-  { id: "tx-4", date: "2025-10-15", payee: "Acme Payroll", categoryId: "income", amount: 4225, paidFrom: "pm-checking", tags: ["salary"] },
-  { id: "tx-5", date: "2025-10-14", payee: "Unknown ACH 8821", categoryId: null, amount: -64.0, paidFrom: "pm-checking", tags: [] },
-  { id: "tx-6", date: "2025-10-13", payee: "Blue Bottle", categoryId: "food-coffee", amount: -12.25, paidFrom: "pm-cash", tags: ["morning"] },
-  { id: "tx-7", date: "2025-10-12", payee: "City Power", categoryId: "home", amount: -104.2, paidFrom: "pm-checking", tags: ["utilities"] },
-  { id: "tx-8", date: "2025-10-10", payee: "Trattoria Nove", categoryId: "food-restaurants", amount: -86.5, paidFrom: "pm-card", tags: ["date-night"] },
-  { id: "tx-9", date: "2025-10-09", payee: "Petco", categoryId: "pets", amount: -54.3, paidFrom: "pm-checking", tags: ["vet"] },
-];
+// export const TRANSACTIONS: Transaction[] = [
+//   { id: "tx-1", date: "2025-10-18", payee: "Whole Foods", categoryId: "food-groceries", amount: -128.4, paidFrom: "pm-checking", tags: ["weekly-shop"] },
+//   { id: "tx-2", date: "2025-10-17", payee: "Uber", categoryId: "ridesharing", amount: -48.1, paidFrom: "pm-card", tags: ["work-travel", "reimbursable"] },
+//   { id: "tx-3", date: "2025-10-16", payee: "DoorDash", categoryId: "food-delivery", amount: -19.99, paidFrom: "pm-card", tags: ["late-night"] },
+//   { id: "tx-4", date: "2025-10-15", payee: "Acme Payroll", categoryId: "income", amount: 4225, paidFrom: "pm-checking", tags: ["salary"] },
+//   { id: "tx-5", date: "2025-10-14", payee: "Unknown ACH 8821", categoryId: null, amount: -64.0, paidFrom: "pm-checking", tags: [] },
+//   { id: "tx-6", date: "2025-10-13", payee: "Blue Bottle", categoryId: "food-coffee", amount: -12.25, paidFrom: "pm-cash", tags: ["morning"] },
+//   { id: "tx-7", date: "2025-10-12", payee: "City Power", categoryId: "home", amount: -104.2, paidFrom: "pm-checking", tags: ["utilities"] },
+//   { id: "tx-8", date: "2025-10-10", payee: "Trattoria Nove", categoryId: "food-restaurants", amount: -86.5, paidFrom: "pm-card", tags: ["date-night"] },
+//   { id: "tx-9", date: "2025-10-09", payee: "Petco", categoryId: "pets", amount: -54.3, paidFrom: "pm-checking", tags: ["vet"] },
+// ];
 
 export const SCHEDULED: ScheduledOutflow[] = [
   { id: "sch-1", date: "2025-10-24", name: "Streaming bundle", categoryId: "self-improvement", amount: 19.99, funded: true },

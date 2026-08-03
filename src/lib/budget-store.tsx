@@ -11,7 +11,6 @@ import type { Category, Subcategory } from "@/lib/mockData";
 export interface MockUser {
   name: string;
   email: string;
-  initials: string;
 }
 
 interface BudgetState {
@@ -300,7 +299,7 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
     setQuickViewId,
     authOpen,
     setAuthOpen,
-    login: () => setUser({ name: "Alex Moreau", email: "alex@pinch.app", initials: "AM" }),
+    login: () => setUser({ name: "Alex Moreau", email: "alex@pinch.app"}),
     logout: () => {
       setUser(null);
       toast("Signed out", { description: "Your mock session was cleared." });

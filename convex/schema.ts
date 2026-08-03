@@ -6,11 +6,10 @@ export default defineSchema({
 		clerkUserId: v.string(),
 		name: v.string(),
 		email: v.string(),
-		initials: v.string(),
 	}).index("by_clerkUserId", { fields: ["clerkUserId"] }),
 
 	envelopes: defineTable({
-		ownerUserId: v.string(),
+		userId: v.id("users"),
 		name: v.string(),
 		categoryId: v.string(),
 		target: v.number(),
@@ -18,7 +17,7 @@ export default defineSchema({
 		spent: v.number(),
 		pinned: v.boolean(),
 		note: v.string(),
-	}).index("by_ownerUserId", { fields: ["ownerUserId"] }).index("by_ownerUserId_and_categoryId", { fields: ["ownerUserId", "categoryId"] }),
+	}).index("by_userId", { fields: ["userId"] }).index("by_userId_and_categoryId", { fields: ["userId", "categoryId"] }),
 
 	transactions: defineTable({
 		ownerUserId: v.string(),
@@ -28,7 +27,8 @@ export default defineSchema({
 		amount: v.number(),
 		paidFrom: v.string(),
 		tags: v.array(v.string()),
-	}).index("by_ownerUserId_and_date", { fields: ["ownerUserId", "date"] }),
+        type: v.union(v.literal("expense"), v.literal("income")),
+	}).index("by_ownerUserId_type_date", { fields: ["ownerUserId", "type", "date"] }),
 
 	categories: defineTable({
 		ownerUserId: v.string(),

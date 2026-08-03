@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   LayoutDashboard,
@@ -41,7 +41,7 @@ import {
 import { useBudget } from "@/lib/budget-store";
 
 const nav = [
-  { icon: LayoutDashboard, label: "Dashboard", to: "/" },
+  { icon: LayoutDashboard, label: "Dashboard", to: "/dashboard" },
   { icon: Wallet, label: "Categories", to: "/envelopes" },
   { icon: ReceiptText, label: "Transactions", to: "/transactions" },
   { icon: Flag, label: "Targets", to: "/targets" },
@@ -50,9 +50,7 @@ const nav = [
 ] as const;
 
 export function SidebarComponent() {
-  const router = useRouter();
   const currentPath = usePathname();
-  const { user, logout, setAuthOpen } = useBudget();
   const { state, isMobile } = useSidebar();
   const collapsed = state === "collapsed" && !isMobile;
 

@@ -51,15 +51,17 @@ export function NewTransactionDialog({
     else if (Number.isNaN(value) || value <= 0) next.amount = "Amount must be a positive number.";
     setErrors(next);
     if (Object.keys(next).length) return;
-
-    addTransaction({
+    const tx = {
       date: new Date().toISOString().slice(0, 10),
       payee: payee.trim(),
       categoryId: kind === "outflow" ? categoryId : null,
       amount: kind === "outflow" ? -value : value,
+      type: kind === "outflow" ? "expense" as const : "income" as const,
       paidFrom,
       tags,
-    });
+    }
+    console.log("Adding transaction", tx);
+    addTransaction(tx);
     reset();
     onOpenChange(false);
   };

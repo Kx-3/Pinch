@@ -7,7 +7,7 @@ import { LayoutDashboard, Wallet, ReceiptText, LineChart, Plus } from "lucide-re
 import { NewTransactionDialog } from "@/components/dashboard/NewTransactionDialog";
 
 const tabs = [
-  { icon: LayoutDashboard, label: "Home", to: "/" },
+  { icon: LayoutDashboard, label: "Home", to: "/dashboard" },
   { icon: Wallet, label: "Categories", to: "/envelopes" },
   { icon: ReceiptText, label: "Activity", to: "/transactions" },
   { icon: LineChart, label: "Reports", to: "/reports" },

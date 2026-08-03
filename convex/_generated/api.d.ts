@@ -11,6 +11,7 @@
 import type * as functions_budget from "../functions/budget.js";
 import type * as functions_categories from "../functions/categories.js";
 import type * as functions_users from "../functions/users.js";
+import type * as http from "../http.js";
 
 import type {
   ApiFromModules,
@@ -22,6 +23,7 @@ declare const fullApi: ApiFromModules<{
   "functions/budget": typeof functions_budget;
   "functions/categories": typeof functions_categories;
   "functions/users": typeof functions_users;
+  http: typeof http;
 }>;
 
 /**
