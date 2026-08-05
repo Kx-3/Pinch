@@ -2,8 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { useBudget } from "@/lib/budget-store";
-import { Plus, Trash2, ChevronDown, ChevronUp, Settings2 } from "lucide-react";
+import {
+  useCategories,
+  useAddCategory,
+  useUpdateCategory,
+  useDeleteCategory,
+  useCategoryLookup,
+  type ServerCategory,
+} from "@/hooks/use-budget-data";
+import { Plus, Trash2, ChevronDown, ChevronUp, Settings2, ShoppingBag, Car, Utensils, Coffee, Bike, ShoppingCart, UtensilsCrossed, Baby, House, ArrowLeftRight, HeartPulse, PawPrint, GraduationCap, TrendingUp, Apple, Plane, Train, Briefcase, Dumbbell, Film, Music, BookOpen, Wrench, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,42 +30,47 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Category, Subcategory, CategoryAccent, CategoryKind } from "@/lib/mockData";
+import type { CategoryKind, CategoryAccent, CategoryColor } from "@/lib/mockData";
 
-const ICONS = [
-  "ShoppingBag",
-  "Car",
-  "Utensils",
-  "Coffee",
-  "Bike",
-  "ShoppingCart",
-  "UtensilsCrossed",
-  "Baby",
-  "House",
-  "ArrowLeftRight",
-  "HeartPulse",
-  "PawPrint",
-  "GraduationCap",
-  "TrendingUp",
-  "Lemon",
-  "Plane",
-  "Train",
-  "Briefcase",
-  "Dumbbell",
-  "Film",
-  "Music",
-  "BookOpen",
-  "Wrench",
-];
+const ICON_MAP: Record<string, LucideIcon> = {
+  ShoppingBag,
+  Car,
+  Utensils,
+  Coffee,
+  Bike,
+  ShoppingCart,
+  UtensilsCrossed,
+  Baby,
+  House,
+  ArrowLeftRight,
+  HeartPulse,
+  PawPrint,
+  GraduationCap,
+  TrendingUp,
+  Apple,
+  Plane,
+  Train,
+  Briefcase,
+  Dumbbell,
+  Film,
+  Music,
+  BookOpen,
+  Wrench,
+};
 
-const COLORS = [1, 2, 3, 4, 5, 6] as const;
+const ICONS = Object.keys(ICON_MAP);
+
+const COLORS: CategoryColor[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 const ACCENTS: CategoryAccent[] = ["primary", "secondary", "tertiary", "error"];
 const KINDS: CategoryKind[] = ["outflow", "inflow"];
 
 export function CategoryManager() {
-  const { categories, addCategory, updateCategory, deleteCategory, getCategoryChildren } =
-    useBudget();
-  const [editingCategory, setEditingCategory] = useState<Category | Subcategory | null>(null);
+  const categories = useCategories();
+  const addCategory = useAddCategory();
+  const updateCategory = useUpdateCategory();
+  const deleteCategory = useDeleteCategory();
+  const lookup = useCategoryLookup();
+  const [editingCategory, setEditingCategory] = useState<ServerCategory | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set(["food"]));
@@ -118,7 +130,7 @@ export function CategoryManager() {
     }
   };
 
-  const handleEdit = (category: Category | Subcategory) => {
+  const handleEdit = (category: ServerCategory) => {
     setEditingCategory(category);
   };
 
@@ -142,7 +154,7 @@ export function CategoryManager() {
           {categories
             .filter((c) => c.parentId === null)
             .map((parent) => {
-              const children = getCategoryChildren(parent.id);
+              const children = lookup.childrenOf(parent.id);
               const isExpanded = expandedParents.has(parent.id);
 
               return (
@@ -264,21 +276,21 @@ function AddCategoryDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: any) => void;
-  categories: Category[];
+  categories: ServerCategory[];
 }) {
   const parentCategories = categories.filter((c) => c.parentId === null);
   const [formData, setFormData] = useState({
     name: "",
-    parentId: "" as string | null,
+    parentId: null as string | null,
     kind: "outflow" as CategoryKind,
-    color: 1 as 1 | 2 | 3 | 4 | 5 | 6,
+    color: 1 as CategoryColor,
     accent: "primary" as CategoryAccent,
     icon: "ShoppingBag",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    onSubmit({ ...formData, parentId: formData.parentId || null });
     setFormData({
       name: "",
       parentId: null,
@@ -312,7 +324,7 @@ function AddCategoryDialog({
           <div className="space-y-2">
             <Label htmlFor="parentId">Parent Category</Label>
             <Select
-              value={formData.parentId}
+              value={formData.parentId ?? ""}
               onValueChange={(value) => setFormData({ ...formData, parentId: value || null })}
             >
               <SelectTrigger>
@@ -374,7 +386,7 @@ function AddCategoryDialog({
               <Select
                 value={String(formData.color)}
                 onValueChange={(value) =>
-                  setFormData({ ...formData, color: Number(value) as 1 | 2 | 3 | 4 | 5 | 6 })
+                  setFormData({ ...formData, color: Number(value) as CategoryColor })
                 }
               >
                 <SelectTrigger>
@@ -383,7 +395,13 @@ function AddCategoryDialog({
                 <SelectContent>
                   {COLORS.map((c) => (
                     <SelectItem key={c} value={String(c)}>
-                      Color {c}
+                      <span className="flex items-center gap-2">
+                        <span
+                          className="h-3 w-3 rounded-full"
+                          style={{ backgroundColor: `var(--chart-${c})` }}
+                        />
+                        Color {c}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -399,11 +417,17 @@ function AddCategoryDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {ICONS.map((icon) => (
-                    <SelectItem key={icon} value={icon}>
-                      {icon}
-                    </SelectItem>
-                  ))}
+                  {ICONS.map((icon) => {
+                    const Icon = ICON_MAP[icon];
+                    return (
+                      <SelectItem key={icon} value={icon}>
+                        <span className="flex items-center gap-2">
+                          <Icon className="h-4 w-4" />
+                          {icon}
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
@@ -431,12 +455,12 @@ function EditCategoryDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  category: Category | Subcategory | null;
+  category: ServerCategory | null;
   onSubmit: (data: any) => void;
-  categories: Category[];
+  categories: ServerCategory[];
 }) {
   const parentCategories = categories.filter((c) => c.parentId === null);
-  const [formData, setFormData] = useState<Partial<Category | Subcategory>>({});
+  const [formData, setFormData] = useState<Partial<ServerCategory>>({});
 
   useEffect(() => {
     if (category) {
@@ -541,7 +565,7 @@ function EditCategoryDialog({
               <Select
                 value={String(formData.color || 1)}
                 onValueChange={(value) =>
-                  setFormData({ ...formData, color: Number(value) as 1 | 2 | 3 | 4 | 5 | 6 })
+                  setFormData({ ...formData, color: Number(value) as CategoryColor })
                 }
               >
                 <SelectTrigger>
@@ -550,7 +574,13 @@ function EditCategoryDialog({
                 <SelectContent>
                   {COLORS.map((c) => (
                     <SelectItem key={c} value={String(c)}>
-                      Color {c}
+                      <span className="flex items-center gap-2">
+                        <span
+                          className="h-3 w-3 rounded-full"
+                          style={{ backgroundColor: `var(--chart-${c})` }}
+                        />
+                        Color {c}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -566,11 +596,17 @@ function EditCategoryDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {ICONS.map((icon) => (
-                    <SelectItem key={icon} value={icon}>
-                      {icon}
-                    </SelectItem>
-                  ))}
+                  {ICONS.map((icon) => {
+                    const Icon = ICON_MAP[icon];
+                    return (
+                      <SelectItem key={icon} value={icon}>
+                        <span className="flex items-center gap-2">
+                          <Icon className="h-4 w-4" />
+                          {icon}
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>

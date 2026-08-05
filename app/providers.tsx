@@ -2,12 +2,12 @@
 
 import { ReactNode } from "react";
 import { ThemeProvider } from "@/lib/theme";
-import { BudgetProvider } from "@/lib/budget-store";
+import { QuickViewProvider } from "@/lib/quick-view";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider>
-      <BudgetProvider>{children}</BudgetProvider>
+      <QuickViewProvider>{children}</QuickViewProvider>
     </ThemeProvider>
   );
 }

@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
-import { useBudget } from "@/lib/budget-store";
+import { useUser, SignInButton } from "@clerk/nextjs";
 
 export default function ProfilePage() {
-  const { user, setAuthOpen } = useBudget();
-  const [name, setName] = useState(user?.name ?? "");
-  const [email, setEmail] = useState(user?.email ?? "");
+  const { user } = useUser();
+  const [name, setName] = useState(user?.fullName ?? "");
+  const [email, setEmail] = useState(user?.emailAddresses?.[0]?.emailAddress ?? "");
   const [error, setError] = useState("");
 
   const save = (e: React.FormEvent) => {
@@ -25,12 +25,11 @@ export default function ProfilePage() {
   if (!user) {
     return (
       <AppShell title="Profile" subtitle="You're signed out.">
-        <button
-          onClick={() => setAuthOpen("login")}
-          className="pressable rounded-md bg-primary px-md py-2.5 font-label-bold text-on-primary hover:bg-primary-container"
-        >
-          Log in
-        </button>
+        <SignInButton mode="modal">
+          <button className="pressable rounded-md bg-primary px-md py-2.5 font-label-bold text-on-primary hover:bg-primary-container">
+            Log in
+          </button>
+        </SignInButton>
       </AppShell>
     );
   }

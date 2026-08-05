@@ -10,6 +10,10 @@
 
 import type * as functions_budget from "../functions/budget.js";
 import type * as functions_categories from "../functions/categories.js";
+import type * as functions_helpers from "../functions/helpers.js";
+import type * as functions_recurring from "../functions/recurring.js";
+import type * as functions_rules from "../functions/rules.js";
+import type * as functions_transactions from "../functions/transactions.js";
 import type * as functions_users from "../functions/users.js";
 import type * as http from "../http.js";
 
@@ -22,6 +26,10 @@ import type {
 declare const fullApi: ApiFromModules<{
   "functions/budget": typeof functions_budget;
   "functions/categories": typeof functions_categories;
+  "functions/helpers": typeof functions_helpers;
+  "functions/recurring": typeof functions_recurring;
+  "functions/rules": typeof functions_rules;
+  "functions/transactions": typeof functions_transactions;
   "functions/users": typeof functions_users;
   http: typeof http;
 }>;

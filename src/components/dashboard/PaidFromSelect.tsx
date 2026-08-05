@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useBudget } from "@/lib/budget-store";
+import { usePaymentMethods, useAddPaymentMethod } from "@/hooks/use-budget-data";
 import { PAYMENT_METHOD_KINDS, type PaymentMethodKind } from "@/lib/mockData";
 
 const fieldBase =
@@ -26,7 +26,7 @@ export function PaidFromSelect({
   onChange: (id: string) => void;
   id?: string;
 }) {
-  const { paymentMethods } = useBudget();
+  const paymentMethods = usePaymentMethods();
   const [addOpen, setAddOpen] = useState(false);
 
   return (
@@ -62,17 +62,17 @@ export function AddPaymentMethodDialog({
   onOpenChange: (v: boolean) => void;
   onAdded?: (id: string) => void;
 }) {
-  const { addPaymentMethod } = useBudget();
+  const addPaymentMethod = useAddPaymentMethod();
   const [label, setLabel] = useState("");
   const [kind, setKind] = useState<PaymentMethodKind>("wallet");
   const [error, setError] = useState("");
 
-  const save = () => {
+  const save = async () => {
     if (!label.trim()) {
       setError("Give it a name, e.g. Alipay.");
       return;
     }
-    const id = addPaymentMethod(label, kind);
+    const id = await addPaymentMethod(label, kind);
     if (!id) return;
     onAdded?.(id);
     setLabel("");

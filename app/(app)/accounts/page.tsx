@@ -1,12 +1,12 @@
 "use client";
 
 import { AppShell } from "@/components/layout/AppShell";
-import { useBudget } from "@/lib/budget-store";
+import { useAccounts } from "@/hooks/use-budget-data";
 import { currency } from "@/lib/mockData";
 import { toast } from "sonner";
 
 export default function AccountsPage() {
-  const { accounts } = useBudget();
+  const accounts = useAccounts();
   const net = accounts.reduce((s, a) => s + a.balance, 0);
 
   return (

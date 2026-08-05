@@ -1,11 +1,14 @@
 "use client";
 
 import { AppShell } from "@/components/layout/AppShell";
-import { useBudget } from "@/lib/budget-store";
+import { useEnvelopes, useAssignToEnvelope } from "@/hooks/use-budget-data";
+import { useQuickView } from "@/lib/quick-view";
 import { currency } from "@/lib/mockData";
 
 export default function TargetsPage() {
-  const { envelopes, assign, setQuickViewId } = useBudget();
+  const envelopes = useEnvelopes();
+  const assign = useAssignToEnvelope();
+  const { setQuickViewId } = useQuickView();
 
   return (
     <AppShell title="Targets" subtitle="Close the gap, one category at a time.">

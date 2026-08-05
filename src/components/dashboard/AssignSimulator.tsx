@@ -6,12 +6,13 @@ import { toast } from "sonner";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { AnimatedNumber } from "@/components/ui/animated-number";
-import { useBudget } from "@/lib/budget-store";
+import { useReadyToAssign, useTotals } from "@/hooks/use-budget-data";
 import { currency0 } from "@/lib/mockData";
 
 /** Live "what-if" planner: adjust savings rate and see the month recalculate instantly. */
 export function AssignSimulator() {
-  const { readyToAssign, totals } = useBudget();
+  const readyToAssign = useReadyToAssign();
+  const totals = useTotals();
   const [rate, setRate] = useState(20);
   const [roundUp, setRoundUp] = useState(true);
   const [horizon, setHorizon] = useState(6);

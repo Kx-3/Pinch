@@ -4,14 +4,18 @@ import { useMemo, useState } from "react";
 import { Search, Bell, Plus, ArrowRight, CircleAlert } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
-import { useBudget } from "@/lib/budget-store";
+import { useEnvelopes, useTransactions, useTotals } from "@/hooks/use-budget-data";
+import { useQuickView } from "@/lib/quick-view";
 import { currency } from "@/lib/mockData";
 import { NewTransactionDialog } from "@/components/dashboard/NewTransactionDialog";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Show, SignInButton, UserButton } from "@clerk/nextjs";
 
 export function Header({ title, subtitle }: { title: string; subtitle: string }) {
-  const { envelopes, transactions, setQuickViewId, totals } = useBudget();
+  const envelopes = useEnvelopes();
+  const transactions = useTransactions();
+  const totals = useTotals();
+  const { setQuickViewId } = useQuickView();
   const { isMobile } = useSidebar();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);

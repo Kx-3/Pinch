@@ -7,12 +7,14 @@ export type { Accent };
 export type CategoryKind = "outflow" | "inflow";
 export type CategoryAccent = "primary" | "secondary" | "tertiary" | "error";
 
+export type CategoryColor = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
+
 /** Top-level category (no parent) */
 export interface Category {
   id: string;
   name: string;
   parentId: null;
-  color: 1 | 2 | 3 | 4 | 5 | 6;
+  color: CategoryColor;
   icon: string;
   kind: CategoryKind;
   accent: CategoryAccent;
@@ -23,7 +25,7 @@ export interface Subcategory {
   id: string;
   name: string;
   parentId: string;
-  color: 1 | 2 | 3 | 4 | 5 | 6;
+  color: CategoryColor;
   icon: string;
   kind: CategoryKind;
   accent: CategoryAccent;
@@ -79,15 +81,68 @@ export interface Transaction {
   paidFrom: string;
   tags: string[];
   type: "expense" | "income";
+  status: "pending" | "cleared" | "reconciled";
+  notes: string;
+  /** the original payee from CSV/import before rules cleaned it */
+  rawPayee?: string;
+  /** dedup hash (date|amount|payee) for CSV imports */
+  hash?: string;
+  isSplit: boolean;
 }
 
-export interface ScheduledOutflow {
+export interface TransactionSplit {
   id: string;
-  date: string;
-  name: string;
   categoryId: string;
   amount: number;
-  funded: boolean;
+  note: string;
+}
+
+export type RuleConditionField = "payee" | "amount" | "rawPayee";
+export type RuleConditionOp = "contains" | "equals" | "starts_with" | "greater_than";
+
+export interface Rule {
+  id: string;
+  priority: number;
+  conditionField: RuleConditionField;
+  conditionOp: RuleConditionOp;
+  conditionValue: string;
+  actionSetCategory: string | null;
+  actionRenamePayee: string | null;
+  actionAddTags: string[];
+}
+
+export type RecurringFrequency = "weekly" | "biweekly" | "monthly" | "annual";
+
+export interface Recurring {
+  id: string;
+  name: string;
+  amount: number;
+  kind: "expense" | "income";
+  frequency: RecurringFrequency;
+  startDate: string;
+  categoryId: string | null;
+  tags: string[];
+  paidFrom: string;
+  active: boolean;
+  notes: string;
+  lastPaid: string | null;
+  projectedMonthly: number;
+  status: "overdue" | "due" | "upcoming" | "paused";
+  nextDue: string | null;
+  occurrences: {
+    date: string;
+    amount: number;
+    paid: boolean;
+  }[];
+}
+
+export interface RecurringSuggestion {
+  payee: string;
+  frequency: RecurringFrequency;
+  count: number;
+  avgAmount: number;
+  categoryId: string | null;
+  confidence: number;
 }
 
 export interface Account {
@@ -190,13 +245,6 @@ export const enrichLine = (l: BudgetLine): Envelope => {
 //   { id: "tx-8", date: "2025-10-10", payee: "Trattoria Nove", categoryId: "food-restaurants", amount: -86.5, paidFrom: "pm-card", tags: ["date-night"] },
 //   { id: "tx-9", date: "2025-10-09", payee: "Petco", categoryId: "pets", amount: -54.3, paidFrom: "pm-checking", tags: ["vet"] },
 // ];
-
-export const SCHEDULED: ScheduledOutflow[] = [
-  { id: "sch-1", date: "2025-10-24", name: "Streaming bundle", categoryId: "self-improvement", amount: 19.99, funded: true },
-  { id: "sch-2", date: "2025-10-28", name: "Daycare invoice", categoryId: "childcare", amount: 425, funded: false },
-  { id: "sch-3", date: "2025-11-01", name: "Rent — Maple St.", categoryId: "home", amount: 2100, funded: true },
-  { id: "sch-4", date: "2025-11-03", name: "Card payment", categoryId: "transfer", amount: 118.4, funded: false },
-];
 
 export const ACCOUNTS: Account[] = [
   { id: "acc-1", name: "Everyday Checking", kind: "Checking", balance: 6421.55 },

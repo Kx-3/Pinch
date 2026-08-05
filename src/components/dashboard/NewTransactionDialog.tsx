@@ -8,12 +8,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useBudget } from "@/lib/budget-store";
+import {
+  useAddTransaction,
+  useAllTags,
+  useCategoryLookup,
+  usePaymentMethods,
+} from "@/hooks/use-budget-data";
 import { CategorySelect } from "@/components/dashboard/CategorySelect";
 import { PaidFromSelect } from "@/components/dashboard/PaidFromSelect";
 import { TagInput } from "@/components/dashboard/TagInput";
-import { DEFAULT_PAYMENT_METHOD_ID } from "@/lib/mockData";
-import { budgetableCategories } from "@/lib/categories";
 
 export function NewTransactionDialog({
   open,
@@ -24,22 +27,43 @@ export function NewTransactionDialog({
   onOpenChange: (v: boolean) => void;
   defaultEnvelopeId?: string;
 }) {
-  const { addTransaction, allTags } = useBudget();
-  const firstCategory = budgetableCategories()[0]?.id ?? "";
+  const addTransaction = useAddTransaction();
+  const allTags = useAllTags();
+  const lookup = useCategoryLookup();
+  const paymentMethods = usePaymentMethods();
+  const firstOutflow = lookup.budgetable()[0]?.id ?? "";
+  const firstInflow = lookup.flat.find((c) => c.kind === "inflow")?.id ?? "";
   const [payee, setPayee] = useState("");
   const [amount, setAmount] = useState("");
-  const [categoryId, setCategoryId] = useState(defaultEnvelopeId ?? firstCategory);
-  const [paidFrom, setPaidFrom] = useState(DEFAULT_PAYMENT_METHOD_ID);
+  const [categoryId, setCategoryId] = useState(defaultEnvelopeId ?? firstOutflow);
+  const [paidFrom, setPaidFrom] = useState("");
   const [tags, setTags] = useState<string[]>([]);
+  const [notes, setNotes] = useState("");
   const [kind, setKind] = useState<"outflow" | "inflow">("outflow");
   const [errors, setErrors] = useState<{ payee?: string; amount?: string }>({});
+
+  const [prevHasMethods, setPrevHasMethods] = useState(false);
+  if (!prevHasMethods && !paidFrom && paymentMethods.length > 0) {
+    setPrevHasMethods(true);
+    setPaidFrom(paymentMethods[0].id);
+  }
+
+  const changeKind = (k: "outflow" | "inflow") => {
+    setKind(k);
+    const valid = k === "outflow" ? firstOutflow : firstInflow;
+    const current = lookup.byId.get(categoryId);
+    const currentIsValid = current && current.kind === k;
+    if (!currentIsValid) setCategoryId(valid);
+  };
 
   const reset = () => {
     setPayee("");
     setAmount("");
     setTags([]);
+    setNotes("");
     setErrors({});
     setKind("outflow");
+    setCategoryId(firstOutflow);
   };
 
   const submit = (e: React.FormEvent) => {
@@ -54,11 +78,12 @@ export function NewTransactionDialog({
     const tx = {
       date: new Date().toISOString().slice(0, 10),
       payee: payee.trim(),
-      categoryId: kind === "outflow" ? categoryId : null,
+      categoryId: categoryId || null,
       amount: kind === "outflow" ? -value : value,
       type: kind === "outflow" ? "expense" as const : "income" as const,
       paidFrom,
       tags,
+      notes,
     }
     console.log("Adding transaction", tx);
     addTransaction(tx);
@@ -89,7 +114,7 @@ export function NewTransactionDialog({
               <button
                 key={k}
                 type="button"
-                onClick={() => setKind(k)}
+                onClick={() => changeKind(k)}
                 className={`pressable rounded-md px-sm py-2 text-label-bold capitalize ${
                   kind === k ? "bg-surface-container-lowest text-primary" : "text-on-surface-variant"
                 }`}
@@ -132,10 +157,11 @@ export function NewTransactionDialog({
             <label htmlFor="category" className="mb-1 block text-label-sm uppercase text-on-surface-variant">
               Category
             </label>
-            {kind === "outflow" ? (
-              <CategorySelect id="category" value={categoryId} onChange={setCategoryId} />
-            ) : (
-              <input id="category" value="Income" readOnly className={`${field} text-on-surface-variant`} />
+            <CategorySelect id="category" value={categoryId} onChange={setCategoryId} kind={kind} />
+            {kind === "inflow" && categoryId === "" && (
+              <p className="mt-1 text-label-sm text-on-surface-variant">
+                No income categories yet — add one in Settings → Categories.
+              </p>
             )}
           </div>
 
@@ -151,6 +177,19 @@ export function NewTransactionDialog({
               Tags
             </label>
             <TagInput id="tags" value={tags} onChange={setTags} suggestions={allTags} />
+          </div>
+
+          <div>
+            <label htmlFor="notes" className="mb-1 block text-label-sm uppercase text-on-surface-variant">
+              Notes
+            </label>
+            <input
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Optional note"
+              className={field}
+            />
           </div>
 
           <DialogFooter>

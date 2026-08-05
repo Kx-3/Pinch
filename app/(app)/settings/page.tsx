@@ -4,18 +4,23 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { Switch } from "@/components/ui/switch";
-import { useBudget } from "@/lib/budget-store";
+import { usePaymentMethods, useRemovePaymentMethod } from "@/hooks/use-budget-data";
 import { Plus, Trash2 } from "lucide-react";
 import { PAYMENT_METHOD_KINDS } from "@/lib/mockData";
 import { AddPaymentMethodDialog } from "@/components/dashboard/PaidFromSelect";
 import { useTheme, type Theme } from "@/lib/theme";
+import { useUser } from "@clerk/nextjs";
 import { CategoryManager } from "@/components/settings/CategoryManager";
 
 export default function SettingsPage() {
-  const { user, paymentMethods, removePaymentMethod } = useBudget();
+  const { user } = useUser();
+  const paymentMethods = usePaymentMethods();
+  const removePaymentMethod = useRemovePaymentMethod();
   const [addOpen, setAddOpen] = useState(false);
   const { theme, setTheme } = useTheme();
   const [prefs, setPrefs] = useState({ overspendAlerts: true, weeklyDigest: true, rollover: false });
+
+  const email = user?.emailAddresses?.[0]?.emailAddress ?? user?.primaryEmailAddress?.emailAddress ?? "";
 
   const rows = [
     { key: "overspendAlerts" as const, label: "Overspend alerts", hint: "Notify me the moment an envelope goes red." },
@@ -30,7 +35,7 @@ export default function SettingsPage() {
   ];
 
   return (
-    <AppShell title="Settings" subtitle={user ? `Preferences for ${user.email}` : "Preferences"}>
+    <AppShell title="Settings" subtitle={user ? `Preferences for ${email}` : "Preferences"}>
       <div className="ghost-border max-w-[36rem] rounded-lg bg-surface-container-lowest p-md">
         <p className="text-body-md font-medium">Appearance</p>
         <p className="text-label-sm text-on-surface-variant">

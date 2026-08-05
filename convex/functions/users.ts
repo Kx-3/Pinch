@@ -1,4 +1,4 @@
-import { query, internalMutation, QueryCtx, MutationCtx } from "../_generated/server";
+import { internalMutation, QueryCtx, MutationCtx } from "../_generated/server";
 import { Doc } from "../_generated/dataModel";
 import { v } from "convex/values";
 
@@ -25,26 +25,6 @@ export async function getCurrentUserOrThrow(
   return user;
 }
 
-export const getUserId = query({
-  args: {},
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Called getUserId without authentication identity");
-    }
-
-    // Check if the user already exists in your table
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerkUserId", (q: any) => q.eq("clerkUserId", identity.subject))
-      .unique();
-      
-    if (user !== null) {
-      return user._id;
-    }
-  },
-});
-
 export const upsertFromClerk = internalMutation({
   args: {
     clerkUserId: v.string(),
@@ -54,7 +34,7 @@ export const upsertFromClerk = internalMutation({
   handler: async (ctx, args) => {
     const existingUser = await ctx.db
       .query("users")
-      .withIndex("by_clerkUserId", (q: any) => q.eq("clerkUserId", args.clerkUserId))
+      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", args.clerkUserId))
       .unique();
     
     if (existingUser) {
@@ -77,7 +57,7 @@ export const deleteFromClerk = internalMutation({
   handler: async (ctx, args) => {
     const existingUser = await ctx.db
       .query("users")
-      .withIndex("by_clerkUserId", (q: any) => q.eq("clerkUserId", args.clerkUserId))
+      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", args.clerkUserId))
       .unique();
     
     if (existingUser) {

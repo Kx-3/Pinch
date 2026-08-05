@@ -120,6 +120,12 @@
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
   --color-chart-6: var(--chart-6);
+  --color-chart-7: var(--chart-7);
+  --color-chart-8: var(--chart-8);
+  --color-chart-9: var(--chart-9);
+  --color-chart-10: var(--chart-10);
+  --color-chart-11: var(--chart-11);
+  --color-chart-12: var(--chart-12);
 
 
 
@@ -128,7 +134,7 @@
   --spacing-base: 0.5rem;
   --spacing-sm: 0.75rem;
   --spacing-md: 1rem;
-  --spacing-gutter: 1rem;
+  --spacing-gutter: 1.25rem;
   --spacing-lg: 1.5rem;
   --spacing-xl: 2rem;
 
@@ -137,31 +143,32 @@
 
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 :root {
   --radius: 1rem;
   --ghost-border: rgba(0, 0, 0, 0.05);
 
-  --background: #f9f9ff;
+  --background: #f7f8fc;
   --foreground: #141b2b;
 
-  --surface: #f9f9ff;
-  --surface-dim: #d3daef;
-  --surface-bright: #f9f9ff;
+  --surface: #f7f8fc;
+  --surface-dim: #d7dceb;
+  --surface-bright: #fbfcff;
   --surface-container-lowest: #ffffff;
-  --surface-container-low: #f1f3ff;
-  --surface-container: #e9edff;
-  --surface-container-high: #e1e8fd;
-  --surface-container-highest: #dce2f7;
-  --surface-variant: #dce2f7;
+  --surface-container-low: #eef1f8;
+  --surface-container: #e6ebf5;
+  --surface-container-high: #dde4f1;
+  --surface-container-highest: #d5ddea;
+  --surface-variant: #d5ddea;
   --surface-tint: #005ac2;
   --on-surface: #141b2b;
-  --on-surface-variant: #424754;
+  --on-surface-variant: #3b4150;
   --inverse-surface: #293040;
   --inverse-on-surface: #edf0ff;
   --outline: #727785;
-  --outline-variant: #c2c6d6;
+  --outline-variant: #c3c8da;
 
   --card: #ffffff;
   --card-foreground: #141b2b;
@@ -211,40 +218,46 @@
   --financial-warning-bg: #ffdcc6;
 
   --chart-1: #f59e0b;
-  --chart-2: #10b981;
-  --chart-3: #8b5cf6;
+  --chart-2: #22c55e;
+  --chart-3: #6366f1;
   --chart-4: #ec4899;
   --chart-5: #3b82f6;
   --chart-6: #64748b;
+  --chart-7: #ef4444;
+  --chart-8: #14b8a6;
+  --chart-9: #f97316;
+  --chart-10: #a855f7;
+  --chart-11: #06b6d4;
+  --chart-12: #84cc16;
 
 }
 
 .dark {
   --ghost-border: rgba(255, 255, 255, 0.12);
 
-  --background: #11151f;
+  --background: #0e1218;
   --foreground: #e3e8f7;
 
-  --surface: #11151f;
-  --surface-dim: #11151f;
-  --surface-bright: #363a45;
-  --surface-container-lowest: #0c1019;
-  --surface-container-low: #191d28;
-  --surface-container: #1d212c;
-  --surface-container-high: #272b36;
-  --surface-container-highest: #323641;
-  --surface-variant: #434750;
+  --surface: #0e1218;
+  --surface-dim: #0e1218;
+  --surface-bright: #323845;
+  --surface-container-lowest: #0b0e14;
+  --surface-container-low: #151a22;
+  --surface-container: #1a2029;
+  --surface-container-high: #232a35;
+  --surface-container-highest: #2d3542;
+  --surface-variant: #3d4452;
   --surface-tint: #adc6ff;
   --on-surface: #e3e8f7;
   --on-surface-variant: #c2c6d6;
   --inverse-surface: #e3e8f7;
   --inverse-on-surface: #293040;
   --outline: #8c9199;
-  --outline-variant: #434750;
+  --outline-variant: #3d4452;
 
-  --card: #191d28;
+  --card: #151a22;
   --card-foreground: #e3e8f7;
-  --popover: #191d28;
+  --popover: #151a22;
   --popover-foreground: #e3e8f7;
 
   --primary: #adc6ff;
@@ -280,7 +293,7 @@
   --error-container: #93000a;
   --on-error-container: #ffdad6;
 
-  --sidebar: #191d28;
+  --sidebar: #151a22;
 
   --financial-income: #4edea3;
   --financial-income-bg: #005236;
@@ -290,11 +303,17 @@
   --financial-warning-bg: #723600;
 
   --chart-1: #fbbf24;
-  --chart-2: #34d399;
-  --chart-3: #a78bfa;
+  --chart-2: #4ade80;
+  --chart-3: #818cf8;
   --chart-4: #f472b6;
   --chart-5: #60a5fa;
   --chart-6: #94a3b8;
+  --chart-7: #f87171;
+  --chart-8: #2dd4bf;
+  --chart-9: #fb923c;
+  --chart-10: #c084fc;
+  --chart-11: #22d3ee;
+  --chart-12: #a3e635;
 
 }
 
@@ -334,6 +353,24 @@
   letter-spacing: -0.01em;
 }
 
+@utility text-numeric-xl {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 2.25rem;
+  font-weight: 600;
+  line-height: 2.5rem;
+  letter-spacing: -0.02em;
+}
+
+@utility text-numeric-2xl {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(1.875rem, 5vw, 2.75rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
 @utility text-numeric-md {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
@@ -341,16 +378,6 @@
   font-weight: 500;
   line-height: 1.5rem;
 }
-
-@utility text-numeric-sm {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 0.875rem;
-  font-weight: 400;
-  line-height: 1.25rem;
-}
-
-
 
 @utility text-display-lg {
   font-size: 2.5rem;
@@ -378,9 +405,28 @@
   font-weight: 500;
 }
 
+@utility text-headline-sm {
+  font-size: 1.125rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
 @utility text-body-md {
   font-size: 1rem;
   line-height: 1.5rem;
+  font-weight: 400;
+}
+
+@utility text-body-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 400;
+}
+
+@utility text-caption {
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
   font-weight: 400;
 }
 

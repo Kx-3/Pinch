@@ -10,6 +10,8 @@ import {
   LineChart,
   CreditCard,
   PiggyBank,
+  Wand2,
+  CalendarClock,
   ChevronsUpDown,
   User,
   Settings,
@@ -38,15 +40,17 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { useBudget } from "@/lib/budget-store";
 
 const nav = [
   { icon: LayoutDashboard, label: "Dashboard", to: "/dashboard" },
   { icon: Wallet, label: "Categories", to: "/envelopes" },
   { icon: ReceiptText, label: "Transactions", to: "/transactions" },
+  { icon: Wand2, label: "Rules", to: "/rules" },
+  { icon: CalendarClock, label: "Recurring", to: "/recurring" },
   { icon: Flag, label: "Targets", to: "/targets" },
   { icon: LineChart, label: "Reports", to: "/reports" },
   { icon: CreditCard, label: "Accounts", to: "/accounts" },
+  { icon: Settings, label: "Settings", to: "/settings" },
 ] as const;
 
 export function SidebarComponent() {
@@ -84,7 +88,10 @@ export function SidebarComponent() {
                   <SidebarMenuItem key={item.label}>
                     <SidebarMenuButton asChild isActive={active} className="text-label-bold">
                       <Link href={item.to} className="flex items-center gap-sm">
-                        <Icon className="h-5 w-5 shrink-0" strokeWidth={active ? 2.4 : 1.8} />
+                        <Icon
+                          className={`h-5 w-5 shrink-0 ${active ? "text-primary" : ""}`}
+                          strokeWidth={active ? 2.4 : 1.8}
+                        />
                         <span>{item.label}</span>
                       </Link>
                     </SidebarMenuButton>

@@ -1,22 +1,8 @@
-import { query, mutation } from "../_generated/server";
+import { query, mutation, MutationCtx } from "../_generated/server";
 import { v } from "convex/values";
 import { getCurrentUserOrThrow } from "./users";
-import { Doc } from "../_generated/dataModel";
-
-// const getOwnerUserId = async (ctx: any): Promise<string> => {
-//   const identity = await ctx.auth.getUserIdentity();
-  
-//   if (!identity || Object.keys(identity).length === 0) {
-//     throw new Error("Authentication required - no identity found");
-//   }
-  
-//   // Clerk uses 'subject' as the user ID field
-//   const owner = identity.subject;
-//   if (!owner) {
-//     throw new Error(`User ID not found. Available identity fields: ${Object.keys(identity).join(', ')}`);
-//   }
-//   return owner;
-// };
+import { Doc, Id } from "../_generated/dataModel";
+import { applySpentDelta, insertTransactionRecord } from "./helpers";
 
 const formatEnvelope = (doc: Doc<"envelopes">) => ({
   id: doc._id,
@@ -27,8 +13,22 @@ const formatEnvelope = (doc: Doc<"envelopes">) => ({
   spent: doc.spent,
   pinned: doc.pinned,
   note: doc.note,
-  // Fixed: _creationTime is a timestamp number in Convex
   createdAt: new Date(doc._creationTime).toISOString(),
+});
+
+const formatTransaction = (doc: Doc<"transactions">) => ({
+  id: doc._id,
+  date: doc.date,
+  payee: doc.payee,
+  categoryId: doc.categoryId,
+  amount: doc.amount,
+  paidFrom: doc.paidFrom,
+  tags: doc.tags,
+  type: doc.type,
+  status: doc.status ?? "cleared",
+  notes: doc.notes ?? "",
+  rawPayee: doc.rawPayee,
+  isSplit: doc.isSplit ?? false,
 });
 
 export const getEnvelopes = query({
@@ -37,20 +37,8 @@ export const getEnvelopes = query({
     const owner = await getCurrentUserOrThrow(ctx);
     const rows = await ctx.db
       .query("envelopes")
-      .withIndex("by_userId", (q: any) => q.eq("userId", owner._id))
-      .collect();
-    return rows.map(formatEnvelope);
-  },
-});
-
-export const getEnvelopesByCategoryId = query({
-  args: { categoryId: v.string() },
-  handler: async (ctx, args) => {
-    const owner = await getCurrentUserOrThrow(ctx);
-    const rows = await ctx.db
-      .query("envelopes")
-      .withIndex("by_userId_and_categoryId", (q: any) => q.eq("userId", owner._id).eq("categoryId", args.categoryId))
-      .collect();
+      .withIndex("by_userId", (q) => q.eq("userId", owner._id))
+      .take(1000);
     return rows.map(formatEnvelope);
   },
 });
@@ -61,22 +49,23 @@ export const getTransactions = query({
     const owner = await getCurrentUserOrThrow(ctx);
     const rows = await ctx.db
       .query("transactions")
-      .withIndex("by_ownerUserId_type_date", (q: any) => q.eq("ownerUserId", owner._id))
+      .withIndex("by_userId_type_date", (q) => q.eq("userId", owner._id))
       .order("desc")
-      .collect();
-    return rows.map((r: any) => ({ id: r._id, date: r.date, payee: r.payee, categoryId: r.categoryId, amount: r.amount, paidFrom: r.paidFrom, tags: r.tags, type: r.type }));
+      .take(1000);
+    return rows.map(formatTransaction);
   },
 });
+
 export const getExpenses = query({
   args: {},
   handler: async (ctx, _args) => {
     const owner = await getCurrentUserOrThrow(ctx);
     const rows = await ctx.db
       .query("transactions")
-      .withIndex("by_ownerUserId_type_date", (q: any) => q.eq("ownerUserId", owner._id).eq("type", "expense"))
+      .withIndex("by_userId_type_date", (q) => q.eq("userId", owner._id).eq("type", "expense"))
       .order("desc")
-      .collect();
-    return rows.map((r: any) => ({ id: r._id, date: r.date, payee: r.payee, categoryId: r.categoryId, amount: r.amount, paidFrom: r.paidFrom, tags: r.tags, type: r.type }));
+      .take(1000);
+    return rows.map(formatTransaction);
   },
 });
 
@@ -84,8 +73,11 @@ export const getPaymentMethods = query({
   args: {},
   handler: async (ctx, _args) => {
     const owner = await getCurrentUserOrThrow(ctx);
-    const rows = await ctx.db.query("paymentMethods").withIndex("by_ownerUserId", (q: any) => q.eq("ownerUserId", owner._id)).collect();
-    return rows.map((r: any) => ({ id: r._id, label: r.label, kind: r.kind, builtIn: !!r.builtIn }));
+    const rows = await ctx.db
+      .query("paymentMethods")
+      .withIndex("by_userId", (q) => q.eq("userId", owner._id))
+      .take(1000);
+    return rows.map((r) => ({ id: r._id, label: r.label, kind: r.kind, builtIn: r.builtIn }));
   },
 });
 
@@ -93,25 +85,11 @@ export const getAccounts = query({
   args: {},
   handler: async (ctx, _args) => {
     const owner = await getCurrentUserOrThrow(ctx);
-    const rows = await ctx.db.query("accounts").withIndex("by_ownerUserId", (q: any) => q.eq("ownerUserId", owner._id)).collect();
-    return rows.map((r: any) => ({ id: r._id, name: r.name, kind: r.kind, balance: r.balance }));
-  },
-});
-
-export const getScheduledOutflows = query({
-  args: {},
-  handler: async (ctx, _args) => {
-    const owner = await getCurrentUserOrThrow(ctx);
-    const rows = await ctx.db.query("scheduledOutflows").withIndex("by_ownerUserId", (q: any) => q.eq("ownerUserId", owner._id)).collect();
-    return rows.map((r: any) => ({ id: r._id, date: r.date, name: r.name, categoryId: r.categoryId, amount: r.amount, funded: r.funded }));
-  },
-});
-
-export const getTips = query({
-  args: {},
-  handler: async (ctx, _args) => {
-    const rows = await ctx.db.query("tips").collect();
-    return rows.map((r: any) => ({ id: r._id, rule: r.rule, role: r.role, body: r.body, author: r.author }));
+    const rows = await ctx.db
+      .query("accounts")
+      .withIndex("by_userId", (q) => q.eq("userId", owner._id))
+      .take(1000);
+    return rows.map((r) => ({ id: r._id, name: r.name, kind: r.kind, balance: r.balance }));
   },
 });
 
@@ -126,11 +104,16 @@ export const addTransaction = mutation({
     paidFrom: v.string(),
     tags: v.array(v.string()),
     type: v.union(v.literal("expense"), v.literal("income")),
+    status: v.optional(v.union(v.literal("pending"), v.literal("cleared"), v.literal("reconciled"))),
+    notes: v.optional(v.string()),
+    rawPayee: v.optional(v.string()),
+    splits: v.optional(
+      v.array(v.object({ categoryId: v.string(), amount: v.number(), note: v.optional(v.string()) })),
+    ),
   },
   handler: async (ctx, args) => {
     const owner = await getCurrentUserOrThrow(ctx);
-    const tx = {
-      ownerUserId: owner._id,
+    const txId = await insertTransactionRecord(ctx, owner._id, {
       date: args.date,
       payee: args.payee,
       categoryId: args.categoryId,
@@ -138,39 +121,29 @@ export const addTransaction = mutation({
       paidFrom: args.paidFrom,
       tags: args.tags,
       type: args.type,
-    };
-    const inserted = await ctx.db.insert("transactions", tx);
-
-    // Update envelope spent if this is an outflow with a category
-    if (args.amount < 0 && args.categoryId) {
-      const envs = await ctx.db.query("envelopes").withIndex("by_userId", (q: any) => q.eq("userId", owner._id)).collect();
-      const env = envs.find((e: any) => e.categoryId === args.categoryId);
-      if (env) {
-        await ctx.db.patch(env._id, { spent: env.spent + Math.abs(args.amount) });
-      }
-    }
-    return inserted;
+      status: args.status ?? "cleared",
+      notes: args.notes ?? "",
+      rawPayee: args.rawPayee ?? null,
+      splits: args.splits ?? [],
+    });
+    return txId;
   },
 });
 
 export const categorizeTransaction = mutation({
-  args: { txId: v.string(), categoryId: v.string() },
+  args: { txId: v.id("transactions"), categoryId: v.string() },
   handler: async (ctx, args) => {
     const owner = await getCurrentUserOrThrow(ctx);
     const tx = await ctx.db.get(args.txId);
-    if (!tx || tx.ownerUserId !== owner._id) throw new Error("Transaction not found or not owned");
-    
-    // Update the transaction's category
-    await ctx.db.patch(args.txId, { categoryId: args.categoryId });
-    
-    // Update envelope spent based on the amount
-    if (tx.amount < 0 && args.categoryId) {
-      const envs = await ctx.db.query("envelopes").withIndex("by_userId", (q: any) => q.eq("userId", owner._id)).collect();
-      const env = envs.find((e: any) => e.categoryId === args.categoryId);
-      if (env) {
-        await ctx.db.patch(env._id, { spent: env.spent + Math.abs(tx.amount) });
-      }
-    }
+    if (!tx || tx.userId !== owner._id) throw new Error("Transaction not found or not owned");
+
+    const contrib = tx.amount < 0 ? Math.abs(tx.amount) : 0;
+    await applySpentDelta(ctx, owner._id, tx.categoryId, -contrib);
+    await applySpentDelta(ctx, owner._id, args.categoryId, contrib);
+
+    const patch: Partial<Doc<"transactions">> = { categoryId: args.categoryId };
+    if (!tx.rawPayee) patch.rawPayee = tx.payee;
+    await ctx.db.patch(args.txId, patch);
     return null;
   },
 });
@@ -187,7 +160,7 @@ export const addEnvelope = mutation({
   },
   handler: async (ctx, args) => {
     const owner = await getCurrentUserOrThrow(ctx);
-    const envelope = {
+    const insertedId = await ctx.db.insert("envelopes", {
       userId: owner._id,
       name: args.name,
       categoryId: args.categoryId,
@@ -196,15 +169,14 @@ export const addEnvelope = mutation({
       spent: args.spent,
       pinned: args.pinned,
       note: args.note,
-    };
-    const insertedId = await ctx.db.insert("envelopes", envelope);
-    return { id: insertedId, ...envelope };
+    });
+    return { id: insertedId, ...args };
   },
 });
 
 export const updateEnvelope = mutation({
   args: {
-    envelopeId: v.string(),
+    envelopeId: v.id("envelopes"),
     name: v.optional(v.string()),
     target: v.optional(v.number()),
     assigned: v.optional(v.number()),
@@ -215,29 +187,70 @@ export const updateEnvelope = mutation({
   handler: async (ctx, args) => {
     const owner = await getCurrentUserOrThrow(ctx);
     const envelope = await ctx.db.get(args.envelopeId);
-    if (!envelope || envelope.ownerUserId !== owner._id) throw new Error("Envelope not found or not owned");
-    
-    const patchData: any = {};
+    if (!envelope || envelope.userId !== owner._id) throw new Error("Envelope not found or not owned");
+
+    const patchData: Partial<Doc<"envelopes">> = {};
     if (args.name !== undefined) patchData.name = args.name;
     if (args.target !== undefined) patchData.target = args.target;
     if (args.assigned !== undefined) patchData.assigned = args.assigned;
     if (args.spent !== undefined) patchData.spent = args.spent;
     if (args.pinned !== undefined) patchData.pinned = args.pinned;
     if (args.note !== undefined) patchData.note = args.note;
-    
+
     await ctx.db.patch(args.envelopeId, patchData);
     return { id: envelope._id, ...patchData };
   },
 });
 
 export const deleteEnvelope = mutation({
-  args: { envelopeId: v.string() },
+  args: { envelopeId: v.id("envelopes") },
   handler: async (ctx, args) => {
     const owner = await getCurrentUserOrThrow(ctx);
     const envelope = await ctx.db.get(args.envelopeId);
-    if (!envelope || envelope.ownerUserId !== owner._id) throw new Error("Envelope not found or not owned");
+    if (!envelope || envelope.userId !== owner._id) throw new Error("Envelope not found or not owned");
     await ctx.db.delete(args.envelopeId);
     return null;
+  },
+});
+
+/** Find or create the envelope for a category, so any outflow category is budgetable. */
+async function getOrCreateEnvelope(
+  ctx: MutationCtx,
+  owner: Doc<"users">,
+  categoryId: string,
+  name: string,
+): Promise<Id<"envelopes">> {
+  const existing = await ctx.db
+    .query("envelopes")
+    .withIndex("by_userId_and_categoryId", (q) => q.eq("userId", owner._id).eq("categoryId", categoryId))
+    .first();
+  if (existing) return existing._id;
+  return await ctx.db.insert("envelopes", {
+    userId: owner._id,
+    name,
+    categoryId,
+    target: 0,
+    assigned: 0,
+    spent: 0,
+    pinned: false,
+    note: "",
+  });
+}
+
+export const setCategoryBudget = mutation({
+  args: { categoryId: v.string(), target: v.number() },
+  handler: async (ctx, args) => {
+    const owner = await getCurrentUserOrThrow(ctx);
+    const category = await ctx.db
+      .query("categories")
+      .withIndex("by_userId", (q) => q.eq("userId", owner._id))
+      .filter((q) => q.eq(q.field("_id"), args.categoryId))
+      .first();
+    if (!category) throw new Error("Category not found");
+    if (category.kind !== "outflow") throw new Error("Only outflow categories can have a budget");
+    const envId = await getOrCreateEnvelope(ctx, owner, args.categoryId, category.name);
+    await ctx.db.patch(envId, { target: Math.max(0, args.target) });
+    return { id: envId, target: Math.max(0, args.target) };
   },
 });
 
@@ -245,10 +258,14 @@ export const assignToEnvelope = mutation({
   args: { categoryId: v.string(), amount: v.number() },
   handler: async (ctx, args) => {
     const owner = await getCurrentUserOrThrow(ctx);
-    const envs = await ctx.db.query("envelopes").withIndex("by_ownerUserId", (q: any) => q.eq("ownerUserId", owner._id)).collect();
-    const env = envs.find((e: any) => e.categoryId === args.categoryId);
-    if (!env) throw new Error("Envelope not found");
-    await ctx.db.patch(env._id, { assigned: env.assigned + args.amount });
+    const category = await ctx.db
+      .query("categories")
+      .withIndex("by_userId", (q) => q.eq("userId", owner._id))
+      .filter((q) => q.eq(q.field("_id"), args.categoryId))
+      .first();
+    const envId = await getOrCreateEnvelope(ctx, owner, args.categoryId, category?.name ?? "Category");
+    const env = await ctx.db.get(envId);
+    await ctx.db.patch(envId, { assigned: (env?.assigned ?? 0) + args.amount });
     return null;
   },
 });
@@ -257,10 +274,14 @@ export const togglePinEnvelope = mutation({
   args: { categoryId: v.string() },
   handler: async (ctx, args) => {
     const owner = await getCurrentUserOrThrow(ctx);
-    const envs = await ctx.db.query("envelopes").withIndex("by_ownerUserId", (q: any) => q.eq("ownerUserId", owner._id)).collect();
-    const env = envs.find((e: any) => e.categoryId === args.categoryId);
-    if (!env) throw new Error("Envelope not found");
-    await ctx.db.patch(env._id, { pinned: !env.pinned });
+    const category = await ctx.db
+      .query("categories")
+      .withIndex("by_userId", (q) => q.eq("userId", owner._id))
+      .filter((q) => q.eq(q.field("_id"), args.categoryId))
+      .first();
+    const envId = await getOrCreateEnvelope(ctx, owner, args.categoryId, category?.name ?? "Category");
+    const env = await ctx.db.get(envId);
+    await ctx.db.patch(envId, { pinned: !(env?.pinned ?? false) });
     return null;
   },
 });
@@ -269,18 +290,22 @@ export const addPaymentMethod = mutation({
   args: { label: v.string(), kind: v.string() },
   handler: async (ctx, args) => {
     const owner = await getCurrentUserOrThrow(ctx);
-    const doc = { ownerUserId: owner._id, label: args.label, kind: args.kind, builtIn: false };
-    const inserted = await ctx.db.insert("paymentMethods", doc);
-    return { id: inserted._id, label: inserted.label, kind: inserted.kind, builtIn: !!inserted.builtIn };
+    const inserted = await ctx.db.insert("paymentMethods", {
+      userId: owner._id,
+      label: args.label,
+      kind: args.kind,
+      builtIn: false,
+    });
+    return { id: inserted, label: args.label, kind: args.kind, builtIn: false };
   },
 });
 
 export const removePaymentMethod = mutation({
-  args: { paymentMethodId: v.string() },
+  args: { paymentMethodId: v.id("paymentMethods") },
   handler: async (ctx, args) => {
     const owner = await getCurrentUserOrThrow(ctx);
     const pm = await ctx.db.get(args.paymentMethodId);
-    if (!pm || pm.ownerUserId !== owner._id) throw new Error("Not found or not owned");
+    if (!pm || pm.userId !== owner._id) throw new Error("Not found or not owned");
     if (pm.builtIn) throw new Error("Cannot remove built-in payment method");
     await ctx.db.delete(args.paymentMethodId);
     return null;
@@ -288,28 +313,12 @@ export const removePaymentMethod = mutation({
 });
 
 export const setTransactionTags = mutation({
-  args: { txId: v.string(), tags: v.array(v.string()) },
+  args: { txId: v.id("transactions"), tags: v.array(v.string()) },
   handler: async (ctx, args) => {
     const owner = await getCurrentUserOrThrow(ctx);
     const tx = await ctx.db.get(args.txId);
-    if (!tx || tx.ownerUserId !== owner._id) throw new Error("Transaction not found or not owned");
+    if (!tx || tx.userId !== owner._id) throw new Error("Transaction not found or not owned");
     await ctx.db.patch(args.txId, { tags: args.tags });
-    return null;
-  },
-});
-
-export const fundScheduledOutflow = mutation({
-  args: { scheduledId: v.string() },
-  handler: async (ctx, args) => {
-    const owner = await getCurrentUserOrThrow(ctx);
-    const sch = await ctx.db.get(args.scheduledId);
-    if (!sch || sch.ownerUserId !== owner._id) throw new Error("Scheduled outflow not found");
-    if (sch.funded) return null;
-    await ctx.db.patch(args.scheduledId, { funded: true });
-    // Optionally credit the envelope assigned amount
-    const envs = await ctx.db.query("envelopes").withIndex("by_ownerUserId", (q: any) => q.eq("ownerUserId", owner._id)).collect();
-    const env = envs.find((e: any) => e.categoryId === sch.categoryId);
-    if (env) await ctx.db.patch(env._id, { assigned: env.assigned + sch.amount });
     return null;
   },
 });

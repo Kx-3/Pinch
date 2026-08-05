@@ -9,28 +9,37 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useBudget } from "@/lib/budget-store";
+import {
+  useEnvelopes,
+  useCategories,
+  useAssignToEnvelope,
+  useTogglePin,
+  useCategoryLookup,
+} from "@/hooks/use-budget-data";
+import { useQuickView } from "@/lib/quick-view";
 import { SORT_OPTIONS, currency, type SortId } from "@/lib/mockData";
-import { categoryTree, pathFor } from "@/lib/categories";
-import type { Category, Subcategory } from "@/lib/mockData";
 
 const TABS = [{ id: "all", name: "All" }];
 
 export function EnvelopeBoard() {
-  const { envelopes, categories, setQuickViewId, togglePin, assign, getCategoryChildren } = useBudget();
+  const envelopes = useEnvelopes();
+  const categories = useCategories();
+  const assign = useAssignToEnvelope();
+  const togglePin = useTogglePin();
+  const lookup = useCategoryLookup();
+  const { setQuickViewId } = useQuickView();
   const [tab, setTab] = useState<string>("all");
   const [sort, setSort] = useState<SortId>("recent");
-
-  console.log(categories);
+  const [filter, setFilter] = useState<string>("all");
 
   // Build envelope data with category metadata
   const rows = useMemo(() => {
     const envelopeMap = new Map(envelopes.map((e) => [e.categoryId, e]));
     const rows: any[] = [];
-    
+
     // Get all top-level categories
     const topCategories = categories.filter((c) => c.parentId === null);
-    
+
     topCategories.forEach((cat) => {
       // Add parent category with envelope data if exists
       const parentEnvelope = envelopeMap.get(cat.id);
@@ -42,11 +51,11 @@ export function EnvelopeBoard() {
         pinned: parentEnvelope?.pinned ?? false,
         createdAt: parentEnvelope?.createdAt ?? "",
         note: parentEnvelope?.note ?? "",
-        children: getCategoryChildren(cat.id) as Subcategory[],
+        children: lookup.childrenOf(cat.id),
       });
-      
+
       // Add children as separate rows with indentation
-      const children = getCategoryChildren(cat.id);
+      const children = lookup.childrenOf(cat.id);
       children.forEach((child) => {
         const childEnvelope = envelopeMap.get(child.id);
         rows.push({
@@ -60,9 +69,16 @@ export function EnvelopeBoard() {
         });
       });
     });
-    
+
     return rows;
-  }, [envelopes, categories, getCategoryChildren]);
+  }, [envelopes, categories, lookup]);
+
+  const visibleRows = useMemo(
+    () => rows.filter((e) => filter === "all" || e.id === filter || e.parentId === filter),
+    [rows, filter],
+  );
+
+  const topCategories = useMemo(() => categories.filter((c) => c.parentId === null), [categories]);
 
   return (
     <div className="ghost-border overflow-hidden rounded-lg bg-surface-container-lowest">
@@ -86,6 +102,21 @@ export function EnvelopeBoard() {
               </button>
             ))}
           </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger className="pressable flex items-center gap-base rounded-md border border-outline-variant px-sm py-1.5 text-label-sm uppercase text-on-surface-variant hover:text-primary">
+              {filter === "all" ? "All categories" : lookup.nameOf(filter)}
+              <ChevronDown className="h-3.5 w-3.5" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="max-h-72 overflow-y-auto">
+              <DropdownMenuItem onSelect={() => setFilter("all")}>All categories</DropdownMenuItem>
+              {topCategories.map((c) => (
+                <DropdownMenuItem key={c.id} onSelect={() => setFilter(c.id)}>
+                  {c.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <DropdownMenu>
             <DropdownMenuTrigger className="pressable flex items-center gap-base rounded-md border border-outline-variant px-sm py-1.5 text-label-sm uppercase text-on-surface-variant hover:text-primary">
@@ -115,8 +146,8 @@ export function EnvelopeBoard() {
             </tr>
           </thead>
           <tbody className="[&>tr:nth-child(even)]:bg-surface-container-low">
-            {rows.length > 0 ? (
-              rows.map((e: any) => {
+            {visibleRows.length > 0 ? (
+              visibleRows.map((e: any) => {
                 const pct = Math.min(100, Math.round((e.assigned / e.target) * 100));
                 const overspent = e.spent > e.assigned;
                 const full = e.assigned >= e.target;
@@ -135,7 +166,7 @@ export function EnvelopeBoard() {
                           style={{ backgroundColor: `var(--chart-${e.color})` }}
                         />
                         <span className={`text-body-md font-medium ${isChild ? "text-on-surface-variant" : ""}`}>
-                          {isChild ? e.name : `${e.name} (Parent)`}
+                          {e.name}
                         </span>
                         {e.pinned && <Pin className="h-3 w-3 text-primary" />}
                       </div>
@@ -198,7 +229,7 @@ export function EnvelopeBoard() {
                 );
               })
             ) : (
-              <tr>
+              <tr className="animate-in fade-in duration-200">
                 <td colSpan={5} className="px-md py-lg text-center text-label-bold font-normal text-on-surface-variant">
                   No categories found. Create categories in Settings to get started.
                 </td>

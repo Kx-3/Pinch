@@ -1,4 +1,6 @@
-import { categoryTree, childrenOf } from "@/lib/categories";
+"use client";
+
+import { useCategoryLookup } from "@/hooks/use-budget-data";
 
 const fieldBase =
   "rounded-md border border-outline-variant bg-surface-container-low px-sm py-2 text-label-bold font-normal outline-none transition-colors duration-150 focus:border-primary";
@@ -19,7 +21,8 @@ export function CategorySelect({
   placeholder?: string;
   kind?: "outflow" | "inflow";
 }) {
-  const tree = categoryTree().filter((c) => c.kind === kind);
+  const lookup = useCategoryLookup();
+  const tree = lookup.topLevel.filter((c) => c.kind === kind);
 
   return (
     <select
@@ -28,15 +31,16 @@ export function CategorySelect({
       onChange={(e) => onChange(e.target.value)}
       className={`${fieldBase} w-full ${className}`}
     >
-      {placeholder && (
+      {(placeholder || !value) && (
         <option value="" disabled>
-          {placeholder}
+          {placeholder ?? "Select a category"}
         </option>
       )}
-      {tree.map((parent) =>
-        childrenOf(parent.id).length ? (
+      {tree.map((parent) => {
+        const children = lookup.childrenOf(parent.id);
+        return children.length ? (
           <optgroup key={parent.id} label={parent.name}>
-            {childrenOf(parent.id).map((child) => (
+            {children.map((child) => (
               <option key={child.id} value={child.id}>
                 {child.name}
               </option>
@@ -46,8 +50,8 @@ export function CategorySelect({
           <option key={parent.id} value={parent.id}>
             {parent.name}
           </option>
-        ),
-      )}
+        );
+      })}
     </select>
   );
 }

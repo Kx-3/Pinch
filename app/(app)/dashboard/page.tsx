@@ -1,11 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/../convex/_generated/api";
 import {
   Star,
-  CalendarDays,
+  CircleAlert,
+  ArrowRight,
   CheckCircle2,
   PlayCircle,
   ChevronLeft,
@@ -26,9 +25,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useBudget } from "@/lib/budget-store";
+import {
+  useEnvelopes,
+  useTransactions,
+  useExpenses,
+  useRecurring,
+  useTotals,
+  useCategoryLookup,
+  useMarkOccurrencePaid,
+} from "@/hooks/use-budget-data";
+import { useQuickView } from "@/lib/quick-view";
 import { currency, currency0 } from "@/lib/mockData";
-import { categoryById, categoryColor } from "@/lib/categories";
 import { Authenticated } from "convex/react";
 import { useUser } from "@clerk/nextjs";
 
@@ -54,49 +61,74 @@ function getPeriod(monthOffset: number) {
 }
 
 export default function Dashboard() {
-  const {
-    readyToAssign,
-    autoAssign,
-    totals,
-    scheduled,
-    envelopes,
-    transactions,
-    fundScheduled,
-    setQuickViewId,
-  } = useBudget();
+  const envelopes = useEnvelopes();
+  const transactions = useTransactions();
+  const expenses = useExpenses();
+  const scheduled = useRecurring();
+  const totals = useTotals();
+  const lookup = useCategoryLookup();
+  const markPaid = useMarkOccurrencePaid();
+  const { setQuickViewId } = useQuickView();
+
+  const readyToAssign = totals.income - totals.assigned;
+  const autoAssign = () =>
+    toast("Auto-assign is not implemented server-side yet", { description: "Use assign for single envelopes." });
+
   const [demoOpen, setDemoOpen] = useState(false);
   const [monthOffset, setMonthOffset] = useState(0);
   const [openGroups, setOpenGroups] = useState<string[]>([]);
 
   const { user } = useUser();
-  // const userId = useQuery(api.functions.users.getUserId);
-
-  // const myTransactions = useQuery(api.functions.budget.getTransactions);
 
   const firstName = (user?.firstName ?? "there").split(" ")[0];
 
   const period = useMemo(() => getPeriod(monthOffset), [monthOffset]);
 
-  /** Expenses grouped by top-level category, with children for collapsible groups. */
-  const expenseGroups = useMemo(() => {
-    const map = new Map<string, { id: string; name: string; spent: number; children: typeof envelopes }>();
-    for (const e of envelopes) {
-      if (e.spent <= 0) continue;
-      const groupId = e.group;
-      const entry = map.get(groupId) ?? {
-        id: groupId,
-        name: categoryById(groupId)?.name ?? groupId,
-        spent: 0,
-        children: [] as typeof envelopes,
-      };
-      entry.spent += e.spent;
-      if (e.id !== groupId) entry.children.push(e);
-      map.set(groupId, entry);
+  /** Spending categories — expense transactions grouped by category, colored + grouped by color. */
+  const expenseCategories = useMemo(() => {
+    const spentByCategory = new Map<string, number>();
+    for (const t of expenses) {
+      if (t.amount >= 0 || !t.categoryId) continue;
+      spentByCategory.set(t.categoryId, (spentByCategory.get(t.categoryId) ?? 0) + Math.abs(t.amount));
     }
-    return Array.from(map.values()).sort((a, b) => b.spent - a.spent);
-  }, [envelopes]);
+    return Array.from(spentByCategory, ([id, spent]) => ({
+      id,
+      name: lookup.nameOf(id),
+      color: lookup.byId.get(id)?.color ?? 6,
+      spent,
+    })).sort((a, b) => a.color - b.color || b.spent - a.spent);
+  }, [expenses, lookup]);
 
-  const expenseTotal = expenseGroups.reduce((s, g) => s + g.spent, 0) || 1;
+  const expenseTotal = expenseCategories.reduce((s, c) => s + c.spent, 0) || 1;
+  const expenseBarTotal = totals.income > 0 ? totals.income : expenseTotal;
+
+  /** Parent categories with their spend; children revealed via openGroups toggle. */
+  const expenseGroups = useMemo(() => {
+    const byParent = new Map<
+      string,
+      { id: string; name: string; color: number; spent: number; children: typeof expenseCategories }
+    >();
+    for (const c of expenseCategories) {
+      const cat = lookup.byId.get(c.id);
+      const parentId = cat?.parentId ?? c.id;
+      const entry = byParent.get(parentId) ?? {
+        id: parentId,
+        name: lookup.nameOf(parentId),
+        color: lookup.byId.get(parentId)?.color ?? 6,
+        spent: 0,
+        children: [] as typeof expenseCategories,
+      };
+      entry.spent += c.spent;
+      if (c.id !== parentId) entry.children.push(c);
+      byParent.set(parentId, entry);
+    }
+    return Array.from(byParent.values())
+      .filter((g) => g.spent > 0)
+      .sort((a, b) => b.spent - a.spent);
+  }, [expenseCategories, lookup]);
+
+  const toggleGroup = (id: string) =>
+    setOpenGroups((prev) => (prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id]));
 
   const incomeSources = useMemo(() => {
     const map = new Map<string, number>();
@@ -111,9 +143,7 @@ export default function Dashboard() {
   }, [transactions, totals.income]);
 
   const spentPct = Math.min(100, Math.round((totals.spent / totals.income) * 100) || 0);
-
-  const toggleGroup = (id: string) =>
-    setOpenGroups((prev) => (prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id]));
+  const shortfall = totals.underfunded.reduce((s, e) => s + (e.target - e.assigned), 0);
 
   return (
     <>
@@ -137,10 +167,7 @@ export default function Dashboard() {
                   </button>
 
                   <div className="min-w-0 text-center">
-                    <p className="truncate text-headline-sm uppercase text-on-surface-variant font-semibold">{period.label}: {period.range}</p>
-                    <p className="mt-0.5 truncate text-label-sm">
-                      
-                    </p>
+                    <p className="truncate text-headline-sm uppercase text-on-surface-variant">{period.label}: {period.range}</p>
                     {monthOffset !== 0 && (
                       <button
                         onClick={() => setMonthOffset(0)}
@@ -164,19 +191,19 @@ export default function Dashboard() {
                   <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-md">
                     <div className="min-w-0">
                       <p className="text-label-sm uppercase text-on-surface-variant">Income</p>
-                      <p className="font-mono-numbers text-[44px] font-semibold leading-none tracking-[-0.02em] text-secondary">
+                      <p className="text-numeric-2xl text-secondary">
                         <AnimatedNumber value={totals.income} format={currency0} duration={900} />
                       </p>
                     </div>
                     <div className="min-w-0 text-right">
                       <p className="text-label-sm uppercase text-on-surface-variant">Expenses</p>
-                      <p className="font-mono-numbers text-[32px] font-medium leading-none tracking-[-0.02em] text-on-surface">
+                      <p className="text-numeric-lg text-on-surface">
                         <AnimatedNumber value={totals.spent} format={currency0} duration={900} />
                       </p>
                     </div>
                   </div>
 
-                  {/* Expense composition bar — each segment is a category's share of spend */}
+                  {/* Expense composition bar — each segment is a parent category's share of spend */}
                   <div className="mt-md">
                     <div className="flex h-2.5 w-full gap-[2px] overflow-hidden rounded-full bg-surface-container-highest">
                       {expenseGroups.map((g) => (
@@ -185,13 +212,13 @@ export default function Dashboard() {
                             <div
                               className="h-full cursor-help transition-[width] duration-300 ease-out first:rounded-l-full last:rounded-r-full"
                               style={{
-                                width: `${(g.spent / expenseTotal) * 100}%`,
-                                backgroundColor: categoryColor(g.id),
+                                width: `${(g.spent / expenseBarTotal) * 100}%`,
+                                backgroundColor: `var(--chart-${g.color})`,
                               }}
                             />
                           </TooltipTrigger>
                           <TooltipContent>
-                            {g.name} — {currency(g.spent)} ({Math.round((g.spent / expenseTotal) * 100)}%)
+                            {g.name} — {currency(g.spent)} ({Math.round((g.spent / expenseBarTotal) * 100)}%)
                           </TooltipContent>
                         </Tooltip>
                       ))}
@@ -210,7 +237,7 @@ export default function Dashboard() {
                     <span key={g.id} className="flex items-center gap-base text-label-sm uppercase text-on-surface-variant">
                       <span
                         className="h-2 w-2 shrink-0 rounded-full"
-                        style={{ backgroundColor: categoryColor(g.id) }}
+                        style={{ backgroundColor: `var(--chart-${g.color})` }}
                       />
                       {g.name}
                     </span>
@@ -227,7 +254,7 @@ export default function Dashboard() {
                     <Star className="h-4 w-4 fill-current" />
                     <span className="text-label-sm uppercase">Ready to Assign</span>
                   </div>
-                  <h2 className="font-mono-numbers text-[28px] font-semibold leading-none tracking-[-0.01em]">
+                  <h2 className="text-numeric-xl">
                     <AnimatedNumber value={readyToAssign} format={currency} duration={900} />
                   </h2>
                   <p className="mt-sm text-body-md opacity-80">Every dollar has a job to do.</p>
@@ -269,7 +296,7 @@ export default function Dashboard() {
                             <span className="flex min-w-0 items-center gap-base">
                               <span
                                 className="h-2 w-2 shrink-0 rounded-full"
-                                style={{ backgroundColor: categoryColor("income") }}
+                                style={{ backgroundColor: lookup.colorOf("income") }}
                               />
                               <span className="truncate text-body-md">{s.name}</span>
                             </span>
@@ -299,7 +326,7 @@ export default function Dashboard() {
                                 <span className="flex min-w-0 items-center gap-base">
                                   <span
                                     className="h-2 w-2 shrink-0 rounded-full"
-                                    style={{ backgroundColor: categoryColor(g.id) }}
+                                    style={{ backgroundColor: `var(--chart-${g.color})` }}
                                   />
                                   <span className="truncate text-body-md">{g.name}</span>
                                   {hasChildren && (
@@ -316,7 +343,7 @@ export default function Dashboard() {
                               </button>
 
                               {hasChildren && open && (
-                                <ul className="mb-1 ml-[14px] space-y-1 border-l border-outline-variant pl-sm">
+                                <ul className="mb-1 ml-[14px] animate-in space-y-1 border-l border-outline-variant pl-sm fade-in duration-150 ease-out">
                                   {g.children
                                     .slice()
                                     .sort((a, b) => b.spent - a.spent)
@@ -326,8 +353,14 @@ export default function Dashboard() {
                                           onClick={() => setQuickViewId(c.id)}
                                           className="pressable flex w-full items-center justify-between gap-sm rounded-md px-1 py-1 text-left hover:bg-surface-container-low"
                                         >
-                                          <span className="truncate text-label-bold font-normal text-on-surface-variant">
-                                            {c.name}
+                                          <span className="flex min-w-0 items-center gap-base">
+                                            <span
+                                              className="h-2 w-2 shrink-0 rounded-full"
+                                              style={{ backgroundColor: `var(--chart-${c.color})` }}
+                                            />
+                                            <span className="truncate text-label-bold font-normal text-on-surface-variant">
+                                              {c.name}
+                                            </span>
                                           </span>
                                           <span className="text-numeric-data text-on-surface-variant">
                                             {currency(c.spent)}
@@ -347,29 +380,29 @@ export default function Dashboard() {
 
                 <div className="ghost-border rounded-lg bg-surface-container-lowest p-md">
                   <div className="mb-sm flex items-center justify-between">
-                    <h3 className="text-label-sm uppercase text-on-surface">Upcoming Scheduled Outflows</h3>
+                    <h3 className="text-label-sm uppercase text-on-surface">Upcoming Recurring</h3>
                     <a
-                      href="/transactions"
+                      href="/recurring"
                       className="pressable text-label-sm uppercase text-primary hover:underline"
                     >
                       View All
                     </a>
                   </div>
                   <div className="space-y-base">
-                    {scheduled.map((s) => {
+                    {scheduled.slice(0, 6).map((s) => {
                       const env = envelopes.find((e) => e.id === s.categoryId);
-                      const [, month, day] = s.date.split("-");
-                      const monthName = new Date(`${s.date}T00:00:00`).toLocaleString("en-US", { month: "short" });
+                      const anchor = s.nextDue ?? s.startDate;
+                      const [, , day] = anchor.split("-");
+                      const monthName = new Date(`${anchor}T00:00:00`).toLocaleString("en-US", { month: "short" });
                       return (
-                        <button
+                        <div
                           key={s.id}
-                          onClick={() => env && setQuickViewId(env.id)}
-                          className="pressable ghost-border flex w-full items-center justify-between rounded-md bg-surface-container-low p-sm text-left hover:bg-surface-container"
+                          className="ghost-border flex w-full items-center justify-between rounded-md bg-surface-container-low p-sm"
                         >
                           <div className="flex items-center gap-sm">
                             <div className="flex h-10 w-10 flex-col items-center justify-center rounded-md bg-surface-container">
                               <span className="text-label-sm uppercase text-on-surface-variant">{monthName}</span>
-                              <span className="text-numeric-data font-medium leading-none">{day ?? month}</span>
+                              <span className="text-numeric-data font-medium leading-none">{day}</span>
                             </div>
                             <div>
                               <p className="text-body-md font-medium">{s.name}</p>
@@ -377,34 +410,37 @@ export default function Dashboard() {
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-numeric-data font-medium">{currency(s.amount)}</p>
-                            {s.funded ? (
-                              <span className="flex items-center justify-end gap-1 text-label-sm uppercase text-secondary">
-                                <CheckCircle2 className="h-3 w-3" /> Funded
+                            <p className="text-numeric-data font-medium">
+                              {currency(Math.abs(s.amount))}
+                              {s.frequency !== "monthly" && (
+                                <span className="text-label-sm text-on-surface-variant">/{s.frequency}</span>
+                              )}
+                            </p>
+                            {s.status === "paused" ? (
+                              <span className="mt-1 inline-block text-label-sm uppercase text-on-surface-variant">
+                                Paused
                               </span>
-                            ) : (
-                              <span
-                                role="button"
-                                tabIndex={0}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  fundScheduled(s.id);
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.stopPropagation();
-                                    fundScheduled(s.id);
-                                  }
-                                }}
+                            ) : s.nextDue ? (
+                              <button
+                                onClick={() => markPaid(s.id, s.nextDue ?? undefined)}
                                 className="pressable mt-1 inline-block rounded-full bg-primary px-2 py-0.5 text-label-sm uppercase text-on-primary hover:bg-primary-container"
                               >
-                                Fund now
+                                Mark paid
+                              </button>
+                            ) : (
+                              <span className="mt-1 flex items-center justify-end gap-1 text-label-sm uppercase text-secondary">
+                                <CheckCircle2 className="h-3 w-3" /> Paid ahead
                               </span>
                             )}
                           </div>
-                        </button>
+                        </div>
                       );
                     })}
+                    {scheduled.length === 0 && (
+                      <p className="text-label-sm text-on-surface-variant">
+                        No recurring bills yet — add some in Recurring.
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -413,62 +449,51 @@ export default function Dashboard() {
 
               {/* Right column */}
               <div className="space-y-md lg:col-span-4">
-                {/* <div className="ghost-border rounded-lg bg-surface-container-lowest p-md">
-                <h3 className="mb-sm text-label-sm uppercase text-on-surface">Key metrics</h3>
-                <div className="divide-y divide-outline-variant">
-                  {metrics.map((m, i) => (
-                    <Tooltip key={m.label}>
-                      <TooltipTrigger asChild>
-                        <div
-                          className="enter-rise hover-lift grid cursor-help grid-cols-[minmax(0,1fr)_auto] items-baseline gap-sm py-sm"
-                          style={{ "--enter-delay": `${160 + i * 60}ms` } as React.CSSProperties}
-                        >
-                          <p className="min-w-0 truncate text-label-sm uppercase text-on-surface-variant">
-                            {m.label}
-                          </p>
-                          <p
-                            className={`text-numeric-data font-medium ${
-                              m.accent ? "text-secondary" : "text-on-surface"
-                            }`}
-                          >
-                            <AnimatedNumber value={m.value} format={m.format} />
-                          </p>
-                          {m.note && (
-                            <p className="col-span-2 text-label-sm text-on-surface-variant">{m.note}</p>
-                          )}
-                          {m.bar !== undefined && (
-                            <div className="col-span-2 h-1 w-full overflow-hidden rounded-full bg-surface-container">
-                              <div
-                                className="h-full bg-primary transition-[width] duration-300 ease-out"
-                                style={{ width: `${m.bar}%` }}
-                              />
-                            </div>
-                          )}
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>{m.hint}</TooltipContent>
-                    </Tooltip>
-                  ))}
-                </div>
-              </div> */}
-
-                <div className="ghost-border rounded-lg bg-primary-fixed p-md text-on-primary-fixed">
+                <div className="ghost-border self-start rounded-lg bg-surface-container-lowest p-md lg:sticky lg:top-20">
                   <div className="mb-sm flex items-center gap-base">
-                    <CalendarDays className="h-4 w-4" />
-                    <h3 className="text-label-sm uppercase">Next Month Reserve</h3>
+                    <CircleAlert className="h-4 w-4 text-primary" />
+                    <h3 className="text-label-sm uppercase text-on-surface">Needs attention</h3>
                   </div>
-                  <p className="font-mono-numbers text-display-lg leading-none">$1,200</p>
-                  <p className="mt-sm text-body-md opacity-70">Assigned for November bills already.</p>
-                  <button
-                    onClick={() =>
-                      toast("Reserve unchanged", {
-                        description: "November reserve management arrives with the backend.",
-                      })
-                    }
-                    className="pressable mt-md w-full rounded-md bg-primary py-2.5 font-label-bold text-on-primary hover:bg-primary-container"
+
+                  {totals.overspent.length === 0 && shortfall === 0 && totals.uncategorized.length === 0 ? (
+                    <p className="text-body-sm text-on-surface-variant">
+                      All caught up — every dollar is assigned and categorized.
+                    </p>
+                  ) : (
+                    <ul className="space-y-base">
+                      {totals.overspent.slice(0, 3).map((e) => (
+                        <li key={e.id} className="flex items-center justify-between gap-sm">
+                          <span className="truncate text-body-md">{e.name}</span>
+                          <span className="shrink-0 text-numeric-data text-error">
+                            {currency(Math.abs(e.spent - e.assigned))} over
+                          </span>
+                        </li>
+                      ))}
+                      {shortfall > 0 && (
+                        <li className="flex items-center justify-between gap-sm">
+                          <span className="truncate text-body-md">Underfunded</span>
+                          <span className="shrink-0 text-numeric-data text-on-surface-variant">
+                            {totals.underfunded.length} envelopes · {currency(shortfall)}
+                          </span>
+                        </li>
+                      )}
+                      {totals.uncategorized.length > 0 && (
+                        <li className="flex items-center justify-between gap-sm">
+                          <span className="truncate text-body-md">Uncategorized</span>
+                          <span className="shrink-0 text-numeric-data text-on-surface-variant">
+                            {totals.uncategorized.length} transactions
+                          </span>
+                        </li>
+                      )}
+                    </ul>
+                  )}
+
+                  <a
+                    href="/envelopes"
+                    className="pressable mt-md flex w-full items-center justify-center gap-base rounded-md bg-primary py-2.5 font-label-bold text-on-primary hover:bg-primary-container"
                   >
-                    Manage Reserve
-                  </button>
+                    Review categories <ArrowRight className="h-4 w-4" />
+                  </a>
                 </div>
 
                 <TipsCarousel />
