@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -57,22 +57,40 @@ export interface Totals {
 
 // ---------- Queries ----------
 
+/** True once the Convex client has a Clerk token. Gates authenticated queries. */
+export function useAuthReady(): boolean {
+  const { isAuthenticated, isLoading } = useConvexAuth();
+  return !isLoading && isAuthenticated;
+}
+
 export function useEnvelopes(): BudgetEnvelope[] {
-  const raw = useQuery(api.functions.budget.getEnvelopes, {});
+  const ready = useAuthReady();
+  const raw = useQuery(api.functions.budget.getEnvelopes, ready ? {} : "skip");
   const categories = useCategories();
   return useMemo(() => enrichEnvelopes(raw ?? [], categories), [raw, categories]);
 }
 
-export function useTransactions(): Transaction[] {
-  return useQuery(api.functions.budget.getTransactions, {}) ?? [];
+export type MonthRange = { start: string; end: string };
+
+export function useTransactions(range?: MonthRange): Transaction[] {
+  const ready = useAuthReady();
+  return useQuery(
+    api.functions.budget.getTransactions,
+    ready ? { startDate: range?.start, endDate: range?.end } : "skip",
+  ) ?? [];
 }
 
-export function useExpenses(): Transaction[] {
-  return useQuery(api.functions.budget.getExpenses, {}) ?? [];
+export function useExpenses(range?: MonthRange): Transaction[] {
+  const ready = useAuthReady();
+  return useQuery(
+    api.functions.budget.getExpenses,
+    ready ? { startDate: range?.start, endDate: range?.end } : "skip",
+  ) ?? [];
 }
 
 export function useAccounts(): Account[] {
-  const rows = useQuery(api.functions.budget.getAccounts, {});
+  const ready = useAuthReady();
+  const rows = useQuery(api.functions.budget.getAccounts, ready ? {} : "skip");
   return useMemo(
     () => (rows ?? []).map((r) => ({ id: r.id, name: r.name, kind: r.kind as Account["kind"], balance: r.balance })),
     [rows],
@@ -80,7 +98,8 @@ export function useAccounts(): Account[] {
 }
 
 export function usePaymentMethods(): PaymentMethod[] {
-  const rows = useQuery(api.functions.budget.getPaymentMethods, {});
+  const ready = useAuthReady();
+  const rows = useQuery(api.functions.budget.getPaymentMethods, ready ? {} : "skip");
   return useMemo(
     () =>
       (rows ?? []).map((r) => ({
@@ -94,7 +113,8 @@ export function usePaymentMethods(): PaymentMethod[] {
 }
 
 export function useCategories(): ServerCategory[] {
-  return useQuery(api.functions.categories.getCategories, {}) ?? [];
+  const ready = useAuthReady();
+  return useQuery(api.functions.categories.getCategories, ready ? {} : "skip") ?? [];
 }
 
 export function useAllTags(): string[] {
@@ -105,10 +125,10 @@ export function useAllTags(): string[] {
   );
 }
 
-export function useTotals(): Totals {
+export function useTotals(range?: MonthRange): Totals {
   const envelopes = useEnvelopes();
-  const expenses = useExpenses();
-  const transactions = useTransactions();
+  const expenses = useExpenses(range);
+  const transactions = useTransactions(range);
   return useMemo(() => {
     const assigned = envelopes.reduce((s, e) => s + e.assigned, 0);
     const spent = expenses.filter((t) => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
@@ -127,6 +147,30 @@ export function useTotals(): Totals {
 export function useReadyToAssign(): number {
   const { income, assigned } = useTotals();
   return income - assigned;
+}
+
+// ---------- Budget table (month-scoped) ----------
+
+export type BudgetRow = {
+  categoryId: string;
+  month: string;
+  assignedCents: number;
+};
+
+export function useBudgets(): BudgetRow[] {
+  const ready = useAuthReady();
+  return useQuery(api.functions.budgets.getBudgets, ready ? {} : "skip") ?? [];
+}
+
+export function useSetAssignedAmount() {
+  const mutate = useMutation(api.functions.budgets.setAssignedAmount);
+  return useCallback(
+    (categoryId: string, month: string, assignedCents: number) =>
+      mutate({ categoryId, month, assignedCents }).catch((e) =>
+        failToast("update budget", e),
+      ),
+    [mutate],
+  );
 }
 
 // ---------- Category lookup helpers (server categories) ----------
@@ -262,11 +306,13 @@ export function useTogglePin() {
 }
 
 export function useRecurring(): Recurring[] {
-  return useQuery(api.functions.recurring.listRecurring, {}) ?? [];
+  const ready = useAuthReady();
+  return useQuery(api.functions.recurring.listRecurring, ready ? {} : "skip") ?? [];
 }
 
 export function useDetectRecurring(): RecurringSuggestion[] {
-  return useQuery(api.functions.recurring.detectRecurring, {}) ?? [];
+  const ready = useAuthReady();
+  return useQuery(api.functions.recurring.detectRecurring, ready ? {} : "skip") ?? [];
 }
 
 export type RecurringInput = {
@@ -387,14 +433,16 @@ export function useRemovePaymentMethod() {
 }
 
 export function useSplits(transactionId: string | null): TransactionSplit[] {
+  const ready = useAuthReady();
   return useQuery(
     api.functions.transactions.getSplits,
-    transactionId ? { transactionId: transactionId as Id<"transactions"> } : "skip",
+    ready && transactionId ? { transactionId: transactionId as Id<"transactions"> } : "skip",
   ) ?? [];
 }
 
 export function useRules(): Rule[] {
-  return useQuery(api.functions.rules.listRules, {}) ?? [];
+  const ready = useAuthReady();
+  return useQuery(api.functions.rules.listRules, ready ? {} : "skip") ?? [];
 }
 
 export function useAddRule() {

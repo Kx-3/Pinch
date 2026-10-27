@@ -9,6 +9,7 @@
  */
 
 import type * as functions_budget from "../functions/budget.js";
+import type * as functions_budgets from "../functions/budgets.js";
 import type * as functions_categories from "../functions/categories.js";
 import type * as functions_helpers from "../functions/helpers.js";
 import type * as functions_recurring from "../functions/recurring.js";
@@ -25,6 +26,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   "functions/budget": typeof functions_budget;
+  "functions/budgets": typeof functions_budgets;
   "functions/categories": typeof functions_categories;
   "functions/helpers": typeof functions_helpers;
   "functions/recurring": typeof functions_recurring;

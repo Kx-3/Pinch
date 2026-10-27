@@ -208,10 +208,21 @@ export default function TransactionsPage() {
         )}
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full table-fixed text-left">
+            <colgroup>
+              <col className="w-10" />
+              <col className="w-28" />
+              <col />
+              <col />
+              <col />
+              <col className="w-48" />
+              <col className="w-32" />
+              <col className="w-28" />
+              <col className="w-16" />
+            </colgroup>
             <thead>
               <tr className="border-b border-outline-variant text-label-sm uppercase text-on-surface-variant">
-                <th className="px-md py-sm font-medium">
+                <th className="h-10 px-3 align-middle font-medium">
                   <input
                     type="checkbox"
                     checked={rows.length > 0 && selected.size === rows.length}
@@ -220,14 +231,14 @@ export default function TransactionsPage() {
                     className="h-4 w-4 accent-[var(--primary)]"
                   />
                 </th>
-                <th className="px-md py-sm font-medium">Date</th>
-                <th className="px-md py-sm font-medium">Payee</th>
-                <th className="px-md py-sm font-medium">Category</th>
-                <th className="px-md py-sm font-medium">Tags</th>
-                <th className="px-md py-sm font-medium">Notes</th>
-                <th className="px-md py-sm font-medium">Paid from</th>
-                <th className="px-md py-sm text-right font-medium">Amount</th>
-                <th className="px-md py-sm"></th>
+                <th className="h-10 px-3 align-middle font-medium">Date</th>
+                <th className="h-10 px-3 align-middle font-medium">Payee</th>
+                <th className="h-10 px-3 align-middle font-medium">Category</th>
+                <th className="h-10 px-3 align-middle font-medium">Tags</th>
+                <th className="h-10 px-3 align-middle font-medium">Notes</th>
+                <th className="h-10 px-3 align-middle font-medium">Paid from</th>
+                <th className="h-10 px-3 align-middle text-right font-medium">Amount</th>
+                <th className="h-10 px-3 align-middle"></th>
               </tr>
             </thead>
             <tbody className="[&>tr:nth-child(even)]:bg-surface-container-low">
@@ -236,23 +247,25 @@ export default function TransactionsPage() {
                   key={t.id}
                   className={`transition-colors duration-150 hover:bg-surface-container ${selected.has(t.id) ? "bg-primary/5" : ""}`}
                 >
-                  <td className="px-md py-sm">
-                    <input
-                      type="checkbox"
-                      checked={selected.has(t.id)}
-                      onChange={(e) => {
-                        const next = new Set(selected);
-                        if (e.target.checked) next.add(t.id);
-                        else next.delete(t.id);
-                        setSelected(next);
-                        setDeleteArmed(false);
-                      }}
-                      aria-label={`Select ${t.payee}`}
-                      className="h-4 w-4 accent-[var(--primary)]"
-                    />
+                  <td className="p-0">
+                    <div className="flex h-10 w-full items-center justify-center px-3">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(t.id)}
+                        onChange={(e) => {
+                          const next = new Set(selected);
+                          if (e.target.checked) next.add(t.id);
+                          else next.delete(t.id);
+                          setSelected(next);
+                          setDeleteArmed(false);
+                        }}
+                        aria-label={`Select ${t.payee}`}
+                        className="h-4 w-4 accent-[var(--primary)]"
+                      />
+                    </div>
                   </td>
-                  <td className="px-md py-sm text-numeric-data text-on-surface-variant">
-                    <span className="flex items-center gap-base">
+                  <td className="p-0 text-numeric-data text-on-surface-variant">
+                    <span className="flex h-10 w-full items-center gap-base px-3">
                       <span
                         title={`${t.status[0].toUpperCase()}${t.status.slice(1)}`}
                         className={`h-2 w-2 shrink-0 rounded-full ${statusDot[t.status]}`}
@@ -260,28 +273,33 @@ export default function TransactionsPage() {
                       {t.date}
                     </span>
                   </td>
-                  <td className="px-md py-sm text-body-md font-medium">
-                    {t.payee}
-                    {t.isSplit && (
-                      <span className="ml-1 text-label-sm uppercase text-tertiary">split</span>
-                    )}
+                  <td className="p-0 text-body-md font-medium">
+                    <span className="flex h-10 w-full items-center px-3">
+                      <span className="min-w-0 truncate">
+                        {t.payee}
+                        {t.isSplit && (
+                          <span className="ml-1 text-label-sm uppercase text-tertiary">split</span>
+                        )}
+                      </span>
+                    </span>
                   </td>
-                  <td className="px-md py-sm">
-                    {t.categoryId ? (
-                      <span className="text-label-bold text-on-surface-variant">{lookup.pathFor(t.categoryId)}</span>
-                    ) : t.amount > 0 ? (
-                      <span className="text-label-sm uppercase text-secondary">Inflow</span>
-                    ) : (
-                      <CategorySelect
-                        value=""
-                        placeholder="Categorize…"
-                        onChange={(id) => id && categorize(t.id, id)}
-                        className="w-44"
-                      />
-                    )}
+                  <td className="p-0">
+                    <div className="flex h-10 w-full items-center px-3">
+                      {t.categoryId ? (
+                        <span className="min-w-0 truncate text-label-bold text-on-surface-variant">{lookup.pathFor(t.categoryId)}</span>
+                      ) : t.amount > 0 ? (
+                        <span className="text-label-sm uppercase text-secondary">Inflow</span>
+                      ) : (
+                        <CategorySelect
+                          value=""
+                          placeholder="Categorize…"
+                          onChange={(id) => id && categorize(t.id, id)}
+                        />
+                      )}
+                    </div>
                   </td>
-                  <td className="px-md py-sm">
-                    <div className="flex flex-wrap gap-1">
+                  <td className="p-0">
+                    <div className="flex min-h-10 w-full flex-wrap items-center gap-1 px-3">
                       {t.tags.map((tg) => (
                         <button
                           key={tg}
@@ -291,28 +309,30 @@ export default function TransactionsPage() {
                           {tg}
                         </button>
                       ))}
-                      {t.tags.length === 0 && <span className="text-label-sm text-on-surface-variant">—</span>}
+                      {t.tags.length === 0 && (
+                        <span className="text-label-sm text-on-surface-variant">—</span>
+                      )}
                     </div>
                   </td>
-                  <td className="px-md py-sm">
-                    {t.notes ? (
-                      <span title={t.notes} className="block max-w-[12rem] truncate text-label-bold font-normal text-on-surface-variant">
-                        {t.notes}
-                      </span>
-                    ) : (
-                      <span className="text-label-sm text-on-surface-variant">—</span>
-                    )}
+                  <td className="p-0">
+                    <div className="flex h-10 w-full items-center px-3">
+                      {t.notes ? (
+                        <span title={t.notes} className="block w-full truncate text-label-bold font-normal text-on-surface-variant">
+                          {t.notes}
+                        </span>
+                      ) : (
+                        <span className="text-label-sm text-on-surface-variant">—</span>
+                      )}
+                    </div>
                   </td>
-                  <td className="px-md py-sm text-label-bold font-normal text-on-surface-variant">
-                    {methodLabel(t.paidFrom)}
+                  <td className="p-0 text-label-bold font-normal text-on-surface-variant">
+                    <div className="flex h-10 w-full items-center px-3">{methodLabel(t.paidFrom)}</div>
                   </td>
-                  <td
-                    className={`px-md py-sm text-right text-numeric-data ${t.amount > 0 ? "text-secondary" : ""}`}
-                  >
-                    {currency(t.amount)}
+                  <td className={`p-0 text-right text-numeric-data ${t.amount > 0 ? "text-secondary" : ""}`}>
+                    <div className="flex h-10 w-full items-center justify-end px-3">{currency(t.amount)}</div>
                   </td>
-                  <td className="px-md py-sm">
-                    <div className="flex items-center justify-end gap-1">
+                  <td className="p-0">
+                    <div className="flex h-10 w-full items-center justify-end gap-1 px-2">
                       <button
                         onClick={() => setRuleSource({ payee: t.payee, categoryId: t.categoryId })}
                         aria-label={`Create a rule for ${t.payee}`}
@@ -336,7 +356,7 @@ export default function TransactionsPage() {
                 <tr className="animate-in fade-in duration-200">
                   <td
                     colSpan={9}
-                    className="px-md py-lg text-center text-label-bold font-normal text-on-surface-variant"
+                    className="p-lg text-center text-label-bold font-normal text-on-surface-variant"
                   >
                     Nothing matches that filter.
                   </td>

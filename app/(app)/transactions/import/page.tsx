@@ -377,15 +377,23 @@ export default function ImportPage() {
             </div>
 
             <div className="max-h-[24rem] overflow-auto rounded-md border border-outline-variant">
-              <table className="w-full text-left text-label-bold font-normal">
+              <table className="w-full table-fixed text-left text-label-bold font-normal">
+                <colgroup>
+                  <col className="w-10" />
+                  <col className="w-28" />
+                  <col />
+                  <col className="w-40" />
+                  <col />
+                  <col className="w-28" />
+                </colgroup>
                 <thead className="sticky top-0 bg-surface-container">
                   <tr className="text-label-sm uppercase text-on-surface-variant">
-                    <th className="px-sm py-2"></th>
-                    <th className="px-sm py-2 font-medium">Date</th>
-                    <th className="px-sm py-2 font-medium">Payee</th>
-                    <th className="px-sm py-2 font-medium">Notes</th>
-                    <th className="px-sm py-2 font-medium">Category</th>
-                    <th className="px-sm py-2 text-right font-medium">Amount</th>
+                    <th className="h-10 px-3 align-middle"></th>
+                    <th className="h-10 px-3 align-middle font-medium">Date</th>
+                    <th className="h-10 px-3 align-middle font-medium">Payee</th>
+                    <th className="h-10 px-3 align-middle font-medium">Notes</th>
+                    <th className="h-10 px-3 align-middle font-medium">Category</th>
+                    <th className="h-10 px-3 align-middle text-right font-medium">Amount</th>
                   </tr>
                 </thead>
                 <tbody className="[&>tr:nth-child(even)]:bg-surface-container-low">
@@ -394,43 +402,59 @@ export default function ImportPage() {
                     const isDup = skipIndexes.has(i);
                     return (
                       <tr key={i} className={isDup ? "opacity-50" : ""}>
-                        <td className="px-sm py-1.5">
-                          <input
-                            type="checkbox"
-                            checked={isDup}
-                            onChange={(e) => {
-                              const next = new Set(skipIndexes);
-                              if (e.target.checked) next.add(i);
-                              else next.delete(i);
-                              setSkipIndexes(next);
-                            }}
-                            aria-label={isDup ? `Skip row ${i + 1}` : `Keep row ${i + 1}`}
-                            className="h-4 w-4 accent-[var(--primary)]"
-                          />
+                        <td className="p-0">
+                          <div className="flex h-10 w-full items-center justify-center px-3">
+                            <input
+                              type="checkbox"
+                              checked={isDup}
+                              onChange={(e) => {
+                                const next = new Set(skipIndexes);
+                                if (e.target.checked) next.add(i);
+                                else next.delete(i);
+                                setSkipIndexes(next);
+                              }}
+                              aria-label={isDup ? `Skip row ${i + 1}` : `Keep row ${i + 1}`}
+                              className="h-4 w-4 accent-[var(--primary)]"
+                            />
+                          </div>
                         </td>
-                        <td className="px-sm py-1.5 text-numeric-data text-on-surface-variant">{r.date}</td>
-                        <td className="px-sm py-1.5">
-                          {r.payee}
-                          {ruleApplied.payee !== r.payee && (
-                            <span className="ml-1 text-label-sm uppercase text-secondary">→ {ruleApplied.payee}</span>
-                          )}
+                        <td className="p-0 text-numeric-data text-on-surface-variant">
+                          <div className="flex h-10 w-full items-center px-3">{r.date}</div>
                         </td>
-                        <td className="max-w-[10rem] px-sm py-1.5">
-                          {r.notes ? (
-                            <span title={r.notes} className="block truncate text-on-surface-variant">
-                              {r.notes}
+                        <td className="p-0">
+                          <div className="flex h-10 w-full items-center px-3">
+                            <span className="min-w-0 truncate">
+                              {r.payee}
+                              {ruleApplied.payee !== r.payee && (
+                                <span className="ml-1 text-label-sm uppercase text-secondary">→ {ruleApplied.payee}</span>
+                              )}
                             </span>
-                          ) : (
-                            <span className="text-on-surface-variant">—</span>
-                          )}
+                          </div>
                         </td>
-                        <td className="px-sm py-1.5">
-                          {lookup.nameOf(ruleApplied.categoryId ?? "")}
-                          {ruleApplied.categoryId && !r.categoryId && (
-                            <span className="ml-1 text-label-sm uppercase text-secondary">rule</span>
-                          )}
+                        <td className="p-0">
+                          <div className="flex h-10 w-full items-center px-3">
+                            {r.notes ? (
+                              <span title={r.notes} className="block w-full truncate text-on-surface-variant">
+                                {r.notes}
+                              </span>
+                            ) : (
+                              <span className="text-on-surface-variant">—</span>
+                            )}
+                          </div>
                         </td>
-                        <td className="px-sm py-1.5 text-right font-mono-numbers">{r.amount.toFixed(2)}</td>
+                        <td className="p-0">
+                          <div className="flex h-10 w-full items-center px-3">
+                            <span className="min-w-0 truncate">
+                              {lookup.nameOf(ruleApplied.categoryId ?? "")}
+                              {ruleApplied.categoryId && !r.categoryId && (
+                                <span className="ml-1 text-label-sm uppercase text-secondary">rule</span>
+                              )}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-0 text-right font-mono-numbers">
+                          <div className="flex h-10 w-full items-center justify-end px-3">{r.amount.toFixed(2)}</div>
+                        </td>
                       </tr>
                     );
                   })}

@@ -64,6 +64,16 @@ export default defineSchema({
 		accent: v.union(v.literal("primary"), v.literal("secondary"), v.literal("tertiary"), v.literal("error")),
 	}).index("by_userId", { fields: ["userId"] }).index("by_userId_and_parentId", { fields: ["userId", "parentId"] }),
 
+	budgets: defineTable({
+		userId: v.id("users"),
+		categoryId: v.string(),
+		month: v.string(),
+		assignedCents: v.number(),
+	})
+		.index("by_userId", { fields: ["userId"] })
+		.index("by_userId_month", { fields: ["userId", "month"] })
+		.index("by_userId_categoryId_month", { fields: ["userId", "categoryId", "month"] }),
+
 	scheduledOutflows: defineTable({
 		userId: v.id("users"),
 		name: v.string(),

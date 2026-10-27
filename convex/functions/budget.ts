@@ -43,26 +43,39 @@ export const getEnvelopes = query({
   },
 });
 
+const rangeArgs = {
+  startDate: v.optional(v.string()),
+  endDate: v.optional(v.string()),
+};
+
 export const getTransactions = query({
-  args: {},
-  handler: async (ctx, _args) => {
+  args: rangeArgs,
+  handler: async (ctx, { startDate, endDate }) => {
     const owner = await getCurrentUserOrThrow(ctx);
-    const rows = await ctx.db
+    let query = ctx.db
       .query("transactions")
-      .withIndex("by_userId_type_date", (q) => q.eq("userId", owner._id))
-      .order("desc")
-      .take(1000);
+      .withIndex("by_userId_type_date", (q) => q.eq("userId", owner._id));
+    if (startDate && endDate) {
+      query = query.filter((q) =>
+        q.and(q.gte(q.field("date"), startDate), q.lte(q.field("date"), endDate)),
+      );
+    }
+    const rows = await query.order("desc").take(1000);
     return rows.map(formatTransaction);
   },
 });
 
 export const getExpenses = query({
-  args: {},
-  handler: async (ctx, _args) => {
+  args: rangeArgs,
+  handler: async (ctx, { startDate, endDate }) => {
     const owner = await getCurrentUserOrThrow(ctx);
     const rows = await ctx.db
       .query("transactions")
-      .withIndex("by_userId_type_date", (q) => q.eq("userId", owner._id).eq("type", "expense"))
+      .withIndex("by_userId_type_date", (q) => {
+        const base = q.eq("userId", owner._id).eq("type", "expense");
+        if (startDate && endDate) return base.gte("date", startDate).lte("date", endDate);
+        return base;
+      })
       .order("desc")
       .take(1000);
     return rows.map(formatTransaction);

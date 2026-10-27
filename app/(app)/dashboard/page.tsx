@@ -13,8 +13,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
-import { TipsCarousel } from "@/components/dashboard/TipsCarousel";
-import { AssignSimulator } from "@/components/dashboard/AssignSimulator";
 import { AnimatedNumber } from "@/components/ui/animated-number";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -43,6 +41,9 @@ import { useUser } from "@clerk/nextjs";
 const fmtDay = (d: Date) =>
   d.toLocaleDateString("en-US", { day: "numeric", month: "long" });
 
+const toISO = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
 function getPeriod(monthOffset: number) {
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
@@ -51,6 +52,8 @@ function getPeriod(monthOffset: number) {
   return {
     label: start.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
     range: `${fmtDay(start)} – ${fmtDay(end)}`,
+    startISO: toISO(start),
+    endISO: toISO(end),
     progress:
       monthOffset < 0
         ? 100
@@ -61,16 +64,10 @@ function getPeriod(monthOffset: number) {
 }
 
 export default function Dashboard() {
-  const envelopes = useEnvelopes();
-  const transactions = useTransactions();
-  const expenses = useExpenses();
-  const scheduled = useRecurring();
-  const totals = useTotals();
   const lookup = useCategoryLookup();
   const markPaid = useMarkOccurrencePaid();
   const { setQuickViewId } = useQuickView();
 
-  const readyToAssign = totals.income - totals.assigned;
   const autoAssign = () =>
     toast("Auto-assign is not implemented server-side yet", { description: "Use assign for single envelopes." });
 
@@ -83,6 +80,18 @@ export default function Dashboard() {
   const firstName = (user?.firstName ?? "there").split(" ")[0];
 
   const period = useMemo(() => getPeriod(monthOffset), [monthOffset]);
+  const month = useMemo(
+    () => ({ start: period.startISO, end: period.endISO }),
+    [period.startISO, period.endISO],
+  );
+
+  const envelopes = useEnvelopes();
+  const transactions = useTransactions(month);
+  const expenses = useExpenses(month);
+  const scheduled = useRecurring();
+  const totals = useTotals(month);
+
+  const readyToAssign = totals.income - totals.assigned;
 
   /** Spending categories — expense transactions grouped by category, colored + grouped by color. */
   const expenseCategories = useMemo(() => {
@@ -187,7 +196,7 @@ export default function Dashboard() {
                   </button>
                 </div>
                 <div>
-                  <p className="mb-md text-label-sm uppercase text-on-surface-variant">This month</p>
+                  <p className="mb-md text-label-sm uppercase text-on-surface-variant">{period.label}</p>
                   <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-md">
                     <div className="min-w-0">
                       <p className="text-label-sm uppercase text-on-surface-variant">Income</p>
@@ -444,7 +453,6 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <AssignSimulator />
               </div>
 
               {/* Right column */}
@@ -495,8 +503,6 @@ export default function Dashboard() {
                     Review categories <ArrowRight className="h-4 w-4" />
                   </a>
                 </div>
-
-                <TipsCarousel />
               </div>
             </div>
 

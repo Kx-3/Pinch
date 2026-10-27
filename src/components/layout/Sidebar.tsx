@@ -17,6 +17,7 @@ import {
   Settings,
   LogOut,
   LogIn,
+  Calculator,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -43,6 +44,7 @@ import {
 
 const nav = [
   { icon: LayoutDashboard, label: "Dashboard", to: "/dashboard" },
+  { icon: Calculator, label: "Budget", to: "/budget" },
   { icon: Wallet, label: "Categories", to: "/envelopes" },
   { icon: ReceiptText, label: "Transactions", to: "/transactions" },
   { icon: Wand2, label: "Rules", to: "/rules" },

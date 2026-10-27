@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { AppShell } from "@/components/layout/AppShell";
-import { AssignSimulator } from "@/components/dashboard/AssignSimulator";
 import { useExpenses, useTotals, useCategoryLookup } from "@/hooks/use-budget-data";
 import { currency0 } from "@/lib/mockData";
 
@@ -129,12 +128,10 @@ export default function ReportsPage() {
             </div>
           ))}
         </div>
-        <p className="mt-md text-label-sm text-on-surface-variant">
-          Total spent {currency0(totals.spent)} of {currency0(totals.income)} income.
+<p className="mt-md text-label-sm text-on-surface-variant">
+          Total spent {currency0(totals.income)} income.
         </p>
       </div>
-
-      <AssignSimulator />
     </AppShell>
   );
 }
